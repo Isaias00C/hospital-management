@@ -1,7 +1,7 @@
 import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { Activity, Heart, Thermometer, Droplet, AlertCircle, FileText } from 'lucide-react';
-import { ENUMS } from '../constants/fields';
+import FieldSelect from './FieldSelect';
 
 export default function ClinicalSection({ formData, onChange, errors = {} }) {
   return (
@@ -24,38 +24,14 @@ export default function ClinicalSection({ formData, onChange, errors = {} }) {
             <label className="input-label" htmlFor="disease_category">
               Categoria da Doença *
             </label>
-            <select
-              id="disease_category"
-              name="disease_category"
-              value={formData.disease_category}
-              onChange={(e) => onChange('disease_category', e.target.value)}
-              className="input-field"
-            >
-              {ENUMS.disease_category.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <FieldSelect field="disease_category" value={formData.disease_category} onChange={onChange} errors={errors} />
           </div>
 
           <div>
             <label className="input-label" htmlFor="disease_severity">
               Gravidade do Quadro *
             </label>
-            <select
-              id="disease_severity"
-              name="disease_severity"
-              value={formData.disease_severity}
-              onChange={(e) => onChange('disease_severity', e.target.value)}
-              className="input-field"
-            >
-              {ENUMS.disease_severity.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <FieldSelect field="disease_severity" value={formData.disease_severity} onChange={onChange} errors={errors} />
           </div>
         </div>
       </div>

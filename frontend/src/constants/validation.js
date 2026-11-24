@@ -1,3 +1,19 @@
+import { ENUMS } from './fields.js';
+
+const selectionSteps = {
+  gender: 1,
+  smoker_status: 1,
+  socioeconomic_tier: 1,
+  residential_zone: 1,
+  marital_status: 1,
+  encounter_type: 2,
+  admission_urgency: 2,
+  department: 2,
+  is_first_admission: 2,
+  disease_category: 3,
+  disease_severity: 3,
+};
+
 const numericFields = {
   age: [1, 'Idade', 0, 110, true],
   charlson_comorbidity_index: [1, 'Índice de Charlson', 0, 15, true],
@@ -24,7 +40,7 @@ export function validateForm(data) {
   for (const [field, [, label, min, max, integer]] of Object.entries(numericFields)) {
     const value = data[field];
     const missing = value == null || value === '';
-    if (field === 'days_since_last_discharge' && data.is_first_admission) continue;
+    if (field === 'days_since_last_discharge' && data.is_first_admission !== false) continue;
     if (field === 'charlson_comorbidity_index' && missing) continue;
     if (missing || !Number.isFinite(value) || value < min || value > max ||
         (integer && !Number.isInteger(value))) {
@@ -32,11 +48,15 @@ export function validateForm(data) {
       errors[field] = `${label}: informe ${expected} entre ${min} e ${max}.`;
     }
   }
+  for (const [field, options] of Object.entries(ENUMS)) {
+    if (!options.some(({ value }) => value === data[field])) errors[field] = 'Selecione uma opção.';
+  }
+  if (typeof data.is_first_admission !== 'boolean') errors.is_first_admission = 'Selecione Sim ou Não.';
   return errors;
 }
 
 export function getFieldTab(field) {
-  return numericFields[field]?.[0];
+  return numericFields[field]?.[0] ?? selectionSteps[field];
 }
 
 export function fieldErrorProps(errors, field) {

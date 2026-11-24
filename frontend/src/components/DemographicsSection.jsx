@@ -1,7 +1,7 @@
 import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { User, HelpCircle, AlertCircle } from 'lucide-react';
-import { ENUMS } from '../constants/fields';
+import FieldSelect from './FieldSelect';
 
 export default function DemographicsSection({ formData, onChange, errors = {} }) {
   const isElderly = Number(formData.age) >= 65;
@@ -56,19 +56,7 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
           <label className="input-label" htmlFor="gender">
             Sexo Biológico *
           </label>
-          <select
-            id="gender"
-            name="gender"
-            value={formData.gender}
-            onChange={(e) => onChange('gender', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.gender.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="gender" value={formData.gender} onChange={onChange} errors={errors} />
           <p className="text-[11px] text-slate-400 mt-1">Gênero de nascimento</p>
         </div>
 
@@ -135,19 +123,7 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
           <label className="input-label" htmlFor="smoker_status">
             Status Tabágico *
           </label>
-          <select
-            id="smoker_status"
-            name="smoker_status"
-            value={formData.smoker_status}
-            onChange={(e) => onChange('smoker_status', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.smoker_status.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="smoker_status" value={formData.smoker_status} onChange={onChange} errors={errors} />
         </div>
 
         {/* Nível Socioeconômico */}
@@ -155,19 +131,7 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
           <label className="input-label" htmlFor="socioeconomic_tier">
             Nível Socioeconômico *
           </label>
-          <select
-            id="socioeconomic_tier"
-            name="socioeconomic_tier"
-            value={formData.socioeconomic_tier}
-            onChange={(e) => onChange('socioeconomic_tier', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.socioeconomic_tier.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="socioeconomic_tier" value={formData.socioeconomic_tier} onChange={onChange} errors={errors} />
         </div>
 
         {/* Zona Residencial */}
@@ -175,19 +139,7 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
           <label className="input-label" htmlFor="residential_zone">
             Zona Residencial *
           </label>
-          <select
-            id="residential_zone"
-            name="residential_zone"
-            value={formData.residential_zone}
-            onChange={(e) => onChange('residential_zone', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.residential_zone.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="residential_zone" value={formData.residential_zone} onChange={onChange} errors={errors} />
         </div>
 
         {/* Estado Civil */}
@@ -195,19 +147,7 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
           <label className="input-label" htmlFor="marital_status">
             Estado Civil *
           </label>
-          <select
-            id="marital_status"
-            name="marital_status"
-            value={formData.marital_status}
-            onChange={(e) => onChange('marital_status', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.marital_status.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="marital_status" value={formData.marital_status} onChange={onChange} errors={errors} />
         </div>
       </div>
     </div>

@@ -11,10 +11,14 @@ export default function Navbar({ backendStatus, onRefreshHealth, onOpenModelInfo
   return (
     <header className="app-header print:hidden">
       <div className="app-header-inner">
-        <div className="brand">
+        <a className="brand" href="#topo" aria-label="HospPredict, início">
           <span className="brand-icon"><Activity size={22} aria-hidden="true" /></span>
           <span>HospPredict</span>
-        </div>
+        </a>
+        <nav className="site-nav" aria-label="Navegação principal">
+          <a href="#avaliacao">Avaliação</a>
+          <a href="#como-funciona">Como funciona</a>
+        </nav>
         <div className="header-actions">
           <div className="api-indicator">
             <span role="status" className="api-label" data-status={backendStatus}>{labels[backendStatus]}</span>

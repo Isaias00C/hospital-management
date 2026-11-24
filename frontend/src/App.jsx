@@ -8,9 +8,10 @@ import MedicationsSection from './components/MedicationsSection';
 import ResultCard from './components/ResultCard';
 import ModelInfoModal from './components/ModelInfoModal';
 import ReadmissionWindow from './components/ReadmissionWindow';
+import { AssessmentHero, AssessmentGuide } from './components/AssessmentLanding';
 import { checkBackendHealth, requestPrediction } from './services/api';
 import { getFieldTab, validateForm } from './constants/validation';
-import { INITIAL_FORM_DATA, CLINICAL_PRESETS } from './constants/fields';
+import { EMPTY_FORM_DATA, CLINICAL_PRESETS } from './constants/fields';
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,13 +19,15 @@ import {
   AlertCircle,
   Clock,
   FlaskConical,
+  ClipboardList,
   ArrowUpRight,
   RotateCcw,
 } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(1);
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [formData, setFormData] = useState(EMPTY_FORM_DATA);
+  const [assessmentStarted, setAssessmentStarted] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [slowColdStart, setSlowColdStart] = useState(false);
@@ -38,6 +41,16 @@ export default function App() {
   const healthCheck = useRef(null);
   const formBody = useRef(null);
   const focusStep = useRef(false);
+  const [assessmentFocus, setAssessmentFocus] = useState(0);
+
+  useEffect(() => {
+    if (assessmentFocus) document.getElementById("assessment-title")?.focus();
+  }, [assessmentFocus]);
+
+  const openAssessment = () => {
+    setAssessmentStarted(true);
+    setAssessmentFocus((request) => request + 1);
+  };
 
   useEffect(() => {
     if (!focusStep.current) return;
@@ -86,7 +99,9 @@ export default function App() {
 
   const showFieldErrors = (nextErrors) => {
     setErrors(nextErrors);
-    const field = Object.keys(nextErrors).find((key) => getFieldTab(key));
+    const field = Object.keys(nextErrors)
+      .filter((key) => getFieldTab(key))
+      .sort((first, second) => getFieldTab(first) - getFieldTab(second))[0];
     if (field) {
       setActiveTab(getFieldTab(field));
       setFieldToFocus({ id: field });
@@ -113,15 +128,29 @@ export default function App() {
   const handleLoadPreset = (preset) => {
     invalidatePrediction();
     setFormData(preset.data);
+    openAssessment();
     setErrors({});
     setActiveTab(1);
   };
 
   const handleReset = () => {
     invalidatePrediction();
-    setFormData(INITIAL_FORM_DATA);
+    setFormData(EMPTY_FORM_DATA);
+    openAssessment();
     setErrors({});
     setActiveTab(1);
+  };
+
+  const handleContinue = () => {
+    const stepErrors = Object.fromEntries(
+      Object.entries(validateForm(formData)).filter(([field]) => getFieldTab(field) === activeTab)
+    );
+    if (Object.keys(stepErrors).length) {
+      showFieldErrors(stepErrors);
+      return;
+    }
+    setErrors({});
+    goToStep(activeTab + 1);
   };
 
   const handleSubmit = async (event) => {
@@ -217,7 +246,7 @@ export default function App() {
   }, [result]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" id="topo">
       <Navbar
         backendStatus={backendStatus}
         onRefreshHealth={checkHealth}
@@ -225,107 +254,126 @@ export default function App() {
       />
 
       <main className="workspace">
-        <div className="workspace-intro print:hidden">
-          <div className="intro-copy">
-            <h1>Risco de readmissão hospitalar</h1>
-            <p>Use os dados da alta para estimar a chance de retorno ao hospital em até 30 dias.</p>
+        <AssessmentHero onStart={openAssessment} started={assessmentStarted} />
+
+        <section className="assessment-zone" id="avaliacao" aria-labelledby="assessment-title">
+          <div className="assessment-heading print:hidden">
+            <div>
+              <h2 id="assessment-title" tabIndex={-1}>Avaliação de readmissão</h2>
+              <p>Use dados fictícios nesta demonstração acadêmica.</p>
+            </div>
           </div>
-          <ReadmissionWindow />
-        </div>
 
-        <div className="assessment-layout">
-          <aside className="assessment-rail print:hidden">
-            <TabsNavigation activeTab={activeTab} onSelectTab={goToStep} />
-
-            <details className="sample-panel">
-              <summary><FlaskConical size={17} aria-hidden="true" /> Casos de demonstração</summary>
-              <p>Preencha o formulário com dados fictícios para testar a avaliação.</p>
-              <div className="sample-options">
-                {CLINICAL_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    aria-pressed={formData === preset.data}
-                    onClick={() => handleLoadPreset(preset)}
-                  >
-                    {preset.title.split(' (')[0]}
-                    <ArrowUpRight size={15} aria-hidden="true" />
-                  </button>
-                ))}
-              </div>
-            </details>
-          </aside>
-
-          <div className="assessment-content">
-            {backendStatus === 'offline' || backendStatus === 'degraded' ? (
-              <div className="notice notice-warning print:hidden" role="status">
-                <AlertCircle size={18} aria-hidden="true" />
-                <div>
-                  <strong>{backendStatus === 'degraded' ? 'Modelo indisponível' : 'API sem resposta'}</strong>
-                  <p>{backendStatus === 'degraded'
-                    ? 'O servidor respondeu, mas o modelo ainda não foi carregado.'
-                    : 'A primeira conexão pode demorar. Tente verificar novamente.'}</p>
+          <div className="assessment-layout">
+            <div className="assessment-content">
+              {backendStatus === 'offline' || backendStatus === 'degraded' ? (
+                <div className="notice notice-warning print:hidden" role="status">
+                  <AlertCircle size={18} aria-hidden="true" />
+                  <div>
+                    <strong>{backendStatus === 'degraded' ? 'Modelo indisponível' : 'API sem resposta'}</strong>
+                    <p>{backendStatus === 'degraded'
+                      ? 'O servidor respondeu, mas o modelo ainda não foi carregado.'
+                      : 'Você pode preencher os campos enquanto verifica a conexão.'}</p>
+                  </div>
+                  <button type="button" onClick={checkHealth} className="text-action">Verificar</button>
                 </div>
-                <button type="button" onClick={checkHealth} className="text-action">Verificar</button>
-              </div>
-            ) : null}
+              ) : null}
 
-            {slowColdStart && (
-              <div className="notice notice-warning print:hidden" role="status">
-                <Clock size={18} aria-hidden="true" />
-                <div><strong>Aguardando resposta da API</strong><p>Se o servidor estiver iniciando, a primeira resposta pode demorar.</p></div>
-              </div>
-            )}
-
-            {apiError && (
-              <div className="notice notice-error print:hidden" role="alert">
-                <AlertCircle size={18} aria-hidden="true" />
-                <div><strong>Não foi possível calcular o risco</strong><p>{apiError}</p></div>
-              </div>
-            )}
-
-            <form className="assessment-form print:hidden" onSubmit={handleSubmit} noValidate aria-busy={loading}>
-              <div className="form-body" data-step={activeTab} ref={formBody}>
-                <p className="step-caption">Etapa {activeTab} de 4</p>
-                <div key={activeTab} className="step-content">
-                  {activeTab === 1 && <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />}
-                  {activeTab === 2 && <EncounterSection formData={formData} onChange={handleChange} errors={errors} />}
-                  {activeTab === 3 && <ClinicalSection formData={formData} onChange={handleChange} errors={errors} />}
-                  {activeTab === 4 && <MedicationsSection formData={formData} onChange={handleChange} errors={errors} />}
+              {slowColdStart && (
+                <div className="notice notice-warning print:hidden" role="status">
+                  <Clock size={18} aria-hidden="true" />
+                  <div><strong>Aguardando a API</strong><p>A primeira resposta pode demorar se o servidor estiver iniciando.</p></div>
                 </div>
-              </div>
+              )}
 
-              <div className="form-actions">
-                {activeTab === 1 ? (
-                  <button type="button" className="button-secondary" onClick={handleReset}>
-                    <RotateCcw size={16} aria-hidden="true" /> Restaurar caso inicial
-                  </button>
-                ) : (
-                  <button type="button" className="button-secondary" onClick={() => goToStep(activeTab - 1)}>
-                    <ChevronLeft size={18} aria-hidden="true" /> Voltar
-                  </button>
-                )}
+              {apiError && (
+                <div className="notice notice-error print:hidden" role="alert">
+                  <AlertCircle size={18} aria-hidden="true" />
+                  <div><strong>Revise a avaliação</strong><p>{apiError}</p></div>
+                </div>
+              )}
 
-                {activeTab < 4 ? (
-                  <button type="button" className="button-primary" onClick={() => goToStep(activeTab + 1)}>
-                    Continuar <ChevronRight size={18} aria-hidden="true" />
+              {!assessmentStarted ? (
+                <div className="assessment-start print:hidden">
+                  <span className="guide-icon"><ClipboardList size={25} aria-hidden="true" /></span>
+                  <h3>Comece uma nova avaliação</h3>
+                  <p>Preencha os campos com valores fictícios ou escolha um caso de exemplo para começar com os dados preenchidos.</p>
+                  <button type="button" className="button-primary" onClick={openAssessment}>
+                    Começar com campos vazios <ChevronRight size={17} aria-hidden="true" />
                   </button>
-                ) : (
-                  <button type="submit" className="button-primary" disabled={loading}>
-                    {loading ? <><Loader2 size={17} className="animate-spin" aria-hidden="true" /> Calculando…</> : 'Calcular risco'}
-                  </button>
-                )}
-              </div>
-            </form>
+                </div>
+              ) : (
+                <form className="assessment-form print:hidden" onSubmit={handleSubmit} noValidate aria-busy={loading}>
+                  <TabsNavigation activeTab={activeTab} onSelectTab={goToStep} />
+                  <div className="form-body" data-step={activeTab} ref={formBody}>
+                    <p className="step-caption">Etapa {activeTab} de 4</p>
+                    <div key={activeTab} className="step-content">
+                      {activeTab === 1 && <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />}
+                      {activeTab === 2 && <EncounterSection formData={formData} onChange={handleChange} errors={errors} />}
+                      {activeTab === 3 && <ClinicalSection formData={formData} onChange={handleChange} errors={errors} />}
+                      {activeTab === 4 && <MedicationsSection formData={formData} onChange={handleChange} errors={errors} />}
+                    </div>
+                  </div>
 
-            {result && <ResultCard result={result.data} formData={result.input} onReset={handleReset} />}
+                  <div className="form-actions">
+                    {activeTab === 1 ? (
+                      <button type="button" className="button-secondary" onClick={handleReset}>
+                        <RotateCcw size={16} aria-hidden="true" /> Limpar formulário
+                      </button>
+                    ) : (
+                      <button type="button" className="button-secondary" onClick={() => goToStep(activeTab - 1)}>
+                        <ChevronLeft size={18} aria-hidden="true" /> Voltar
+                      </button>
+                    )}
+
+                    {activeTab < 4 ? (
+                      <button type="button" className="button-primary" onClick={handleContinue}>
+                        Continuar <ChevronRight size={18} aria-hidden="true" />
+                      </button>
+                    ) : (
+                      <button type="submit" className="button-primary" disabled={loading}>
+                        {loading ? <><Loader2 size={17} className="animate-spin" aria-hidden="true" /> Calculando…</> : 'Calcular risco'}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
+
+              {result && <ResultCard result={result.data} formData={result.input} onReset={handleReset} />}
+            </div>
+
+            <aside className="assessment-rail print:hidden" aria-label="Casos de demonstração">
+              <section className="example-panel" id="casos" aria-labelledby="example-title">
+                <div className="example-heading">
+                  <span className="guide-icon"><FlaskConical size={19} aria-hidden="true" /></span>
+                  <h3 id="example-title">Casos de exemplo</h3>
+                </div>
+                <p>Ao escolher um caso, os dados do formulário são substituídos.</p>
+                <div className="sample-options">
+                  {CLINICAL_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      aria-pressed={formData === preset.data}
+                      onClick={() => handleLoadPreset(preset)}
+                    >
+                      <span>{preset.title.split(' (')[0]}</span>
+                      <ArrowUpRight size={15} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              </section>
+              <ReadmissionWindow />
+            </aside>
           </div>
-        </div>
+        </section>
+
+        <AssessmentGuide />
       </main>
 
       <footer className="app-footer print:hidden">
         <span>HospPredict · Projeto acadêmico do IFCE</span>
-        <span>Use somente dados fictícios.</span>
+        <button type="button" onClick={() => setIsModalOpen(true)}>Metodologia e limitações</button>
       </footer>
 
       <ModelInfoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />

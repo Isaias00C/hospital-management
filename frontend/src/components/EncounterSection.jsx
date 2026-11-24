@@ -1,7 +1,7 @@
 import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { Building2, Calendar, Clock, AlertCircle } from 'lucide-react';
-import { ENUMS } from '../constants/fields';
+import FieldSelect from './FieldSelect';
 
 export default function EncounterSection({ formData, onChange, errors = {} }) {
   const getLosCategory = (days) => {
@@ -30,19 +30,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
           <label className="input-label" htmlFor="encounter_type">
             Tipo de Atendimento *
           </label>
-          <select
-            id="encounter_type"
-            name="encounter_type"
-            value={formData.encounter_type}
-            onChange={(e) => onChange('encounter_type', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.encounter_type.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="encounter_type" value={formData.encounter_type} onChange={onChange} errors={errors} />
         </div>
 
         {/* Urgência da Admissão */}
@@ -50,19 +38,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
           <label className="input-label" htmlFor="admission_urgency">
             Urgência da Admissão *
           </label>
-          <select
-            id="admission_urgency"
-            name="admission_urgency"
-            value={formData.admission_urgency}
-            onChange={(e) => onChange('admission_urgency', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.admission_urgency.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="admission_urgency" value={formData.admission_urgency} onChange={onChange} errors={errors} />
         </div>
 
         {/* Departamento */}
@@ -70,19 +46,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
           <label className="input-label" htmlFor="department">
             Departamento Hospitalar *
           </label>
-          <select
-            id="department"
-            name="department"
-            value={formData.department}
-            onChange={(e) => onChange('department', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.department.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="department" value={formData.department} onChange={onChange} errors={errors} />
         </div>
 
         {/* Tempo de Internação */}
@@ -144,24 +108,18 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
 
         {/* Primeira Internação / Dias desde Última Alta */}
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <label htmlFor="is_first_admission" className="text-xs font-semibold text-slate-700">Primeira Internação?</label>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                id="is_first_admission"
-                checked={isFirstAdmission}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  onChange('is_first_admission', checked);
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-            </label>
+          <div>
+            <label htmlFor="is_first_admission" className="input-label">É a primeira internação? *</label>
+            <FieldSelect
+              field="is_first_admission"
+              value={isFirstAdmission == null ? '' : String(isFirstAdmission)}
+              onChange={(field, value) => onChange(field, value === 'true')}
+              errors={errors}
+              options={[{ value: 'true', label: 'Sim' }, { value: 'false', label: 'Não' }]}
+            />
           </div>
 
-          {!isFirstAdmission && (
+          {isFirstAdmission === false && (
             <div>
               <label className="input-label" htmlFor="days_since_last_discharge">
                 Dias desde Última Alta *

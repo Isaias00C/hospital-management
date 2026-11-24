@@ -48,6 +48,13 @@ export const INITIAL_FORM_DATA = {
   has_ace_arb: 1,
 };
 
+export const EMPTY_FORM_DATA = Object.fromEntries(
+  Object.keys(INITIAL_FORM_DATA).map((field) => [
+    field,
+    field === 'is_first_admission' ? null : field.startsWith('has_') ? 0 : '',
+  ])
+);
+
 // Casos clínicos pré-configurados para demonstração rápida em banca / testes
 export const CLINICAL_PRESETS = [
   {

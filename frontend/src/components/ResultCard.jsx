@@ -61,7 +61,7 @@ export default function ResultCard({ result, formData, onReset }) {
       </div>
 
       <div className="form-actions print:hidden">
-        <button type="button" className="button-secondary" onClick={onReset}><RotateCcw size={16} aria-hidden="true" /> Restaurar caso inicial</button>
+        <button type="button" className="button-secondary" onClick={onReset}><RotateCcw size={16} aria-hidden="true" /> Nova avaliação</button>
         <button type="button" className="button-primary" onClick={() => window.print()}><FileDown size={17} aria-hidden="true" /> Imprimir relatório</button>
       </div>
     </section>
