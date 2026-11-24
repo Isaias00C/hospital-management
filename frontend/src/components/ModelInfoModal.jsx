@@ -1,11 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, Check, BookOpen, GitBranch, Shield, Cpu, Activity } from 'lucide-react';
 
 export default function ModelInfoModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
+  const dialog = useRef(null);
+
+  useEffect(() => {
+    const element = dialog.current;
+    if (isOpen && !element.open) element.showModal();
+    if (!isOpen && element.open) element.close();
+  }, [isOpen]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <dialog
+      ref={dialog}
+      aria-labelledby="model-info-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto rounded-2xl p-0 backdrop:bg-slate-900/60 print:hidden"
+    >
       <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="bg-gradient-to-r from-teal-700 to-teal-900 text-white p-6 flex items-center justify-between">
@@ -16,12 +30,15 @@ export default function ModelInfoModal({ isOpen, onClose }) {
               </span>
               <span className="text-xs text-teal-200">IFCE — Probabilidade e Estatística</span>
             </div>
-            <h2 className="text-xl font-bold tracking-tight mt-1">
+            <h2 id="model-info-title" className="text-xl font-bold tracking-tight mt-1">
               Arquitetura & Critérios de Aceite do Modelo
             </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fechar informações do modelo"
+            autoFocus
             className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors text-white"
           >
             <X className="w-5 h-5" />
@@ -29,7 +46,7 @@ export default function ModelInfoModal({ isOpen, onClose }) {
         </div>
 
         {/* Conteúdo */}
-        <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-slate-700 text-sm">
+        <div className="p-6 space-y-6 text-slate-700 text-sm">
           {/* Tabela de Métricas */}
           <div>
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -136,6 +153,7 @@ export default function ModelInfoModal({ isOpen, onClose }) {
         {/* Footer */}
         <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-end">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-lg transition-colors"
           >
@@ -143,6 +161,6 @@ export default function ModelInfoModal({ isOpen, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

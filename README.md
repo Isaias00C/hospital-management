@@ -33,7 +33,7 @@ Candidatas para o que o modelo pode prever. A escolha final depende do que o dat
 | Backend  | FastAPI (Python)                            |
 | ML       | Modelo tabular (scikit-learn ou similar)    |
 | Dataset  | [Hospital Management Data (Kaggle)](https://www.kaggle.com/datasets/deeplumiere/hospital-management-data) (~20 MB, tabular) |
-| Deploy   | Frontend no Vercel; backend no Render ou Vercel (a definir) |
+| Deploy   | Frontend no Vercel e backend no Render |
 | Banco    | Não previsto inicialmente; Supabase como opção futura |
 
 ## Estrutura do repositório
@@ -52,7 +52,6 @@ hospital-management/
 - [ ] Explorar o dataset e definir a **variável alvo** da predição, escolhendo entre as [propostas](#propostas-de-predição)
 - [ ] Definir os **campos do formulário** com base nas features do modelo
 - [ ] Escolher o formato de exportação do modelo (`joblib` ou `ONNX`)
-- [ ] Decidir onde o backend será hospedado (Render ou Vercel), conforme o tamanho do modelo
 - [ ] Confirmar a licença de uso do dataset
 
 ## Plano de desenvolvimento
@@ -64,21 +63,11 @@ hospital-management/
 5. **Deploy** do frontend e do backend.
 6. **Opcional:** salvar histórico de predições no Supabase.
 
-## Como rodar localmente
+## Deploy e testes pela web
 
-_A preencher após a implementação._
+Veja [DEPLOY.md](DEPLOY.md) para conectar o GitHub ao Render e ao Vercel e validar a versão publicada pelo GitHub Actions.
 
-```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-
-# Frontend
-cd frontend
-npm install
-npm run dev
-```
+Para desenvolvimento local, veja os guias do [frontend](frontend/README.md) e do [backend](backend/README.md).
 
 ## Observações
 

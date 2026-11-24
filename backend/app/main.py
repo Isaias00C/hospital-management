@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import sklearn
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import ml
@@ -46,6 +46,14 @@ def health(request: Request):
         model_version=settings.model_version,
         sklearn_version=sklearn.__version__,
     )
+
+
+@app.get("/ready", response_model=HealthResponse, responses={503: {"model": HealthResponse}})
+def readiness(request: Request, response: Response):
+    body = health(request)
+    if not body.model_loaded:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return body
 
 
 @app.post("/api/v1/predict/readmission-30d", response_model=ReadmissionResponse)

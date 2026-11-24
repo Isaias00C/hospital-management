@@ -1,6 +1,7 @@
+import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { Building2, Calendar, Clock, AlertCircle } from 'lucide-react';
-import { ENUMS } from '../constants/fields';
+import FieldSelect from './FieldSelect';
 
 export default function EncounterSection({ formData, onChange, errors = {} }) {
   const getLosCategory = (days) => {
@@ -17,10 +18,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
   return (
     <div className="space-y-6">
       <div className="border-b border-slate-200 pb-4">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-teal-600" />
-          2. Contexto da Internação & Histórico
-        </h2>
+        <h2 tabIndex={-1}>Internação e histórico</h2>
         <p className="text-xs text-slate-500 mt-1">
           Dados do episódio de internação atual e histórico prévio de atendimentos no hospital.
         </p>
@@ -32,19 +30,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
           <label className="input-label" htmlFor="encounter_type">
             Tipo de Atendimento *
           </label>
-          <select
-            id="encounter_type"
-            name="encounter_type"
-            value={formData.encounter_type}
-            onChange={(e) => onChange('encounter_type', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.encounter_type.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="encounter_type" value={formData.encounter_type} onChange={onChange} errors={errors} />
         </div>
 
         {/* Urgência da Admissão */}
@@ -52,19 +38,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
           <label className="input-label" htmlFor="admission_urgency">
             Urgência da Admissão *
           </label>
-          <select
-            id="admission_urgency"
-            name="admission_urgency"
-            value={formData.admission_urgency}
-            onChange={(e) => onChange('admission_urgency', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.admission_urgency.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="admission_urgency" value={formData.admission_urgency} onChange={onChange} errors={errors} />
         </div>
 
         {/* Departamento */}
@@ -72,19 +46,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
           <label className="input-label" htmlFor="department">
             Departamento Hospitalar *
           </label>
-          <select
-            id="department"
-            name="department"
-            value={formData.department}
-            onChange={(e) => onChange('department', e.target.value)}
-            className="input-field"
-          >
-            {ENUMS.department.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <FieldSelect field="department" value={formData.department} onChange={onChange} errors={errors} />
         </div>
 
         {/* Tempo de Internação */}
@@ -104,7 +66,11 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
             }
             className={`input-field ${errors.length_of_stay_days ? 'input-field-error' : ''}`}
             placeholder="0 a 60 dias"
+            {...fieldErrorProps(errors, 'length_of_stay_days')}
           />
+          {errors.length_of_stay_days && (
+            <p id="length_of_stay_days-error" className="mt-1 text-xs text-rose-700">{errors.length_of_stay_days}</p>
+          )}
           <div className="flex items-center justify-between mt-1 text-[11px]">
             <span className="text-slate-400">0 a 60 dias</span>
             {formData.length_of_stay_days !== '' && (
@@ -132,37 +98,31 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
             }
             className={`input-field ${errors.revisit_count ? 'input-field-error' : ''}`}
             placeholder="0 a 20"
+            {...fieldErrorProps(errors, 'revisit_count')}
           />
+          {errors.revisit_count && (
+            <p id="revisit_count-error" className="mt-1 text-xs text-rose-700">{errors.revisit_count}</p>
+          )}
           <p className="text-[11px] text-slate-400 mt-1">Quantas vezes o paciente já retornou</p>
         </div>
 
         {/* Primeira Internação / Dias desde Última Alta */}
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700">Primeira Internação?</span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isFirstAdmission}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  onChange('is_first_admission', checked);
-                  if (checked) {
-                    onChange('days_since_last_discharge', null);
-                  } else {
-                    onChange('days_since_last_discharge', 45);
-                  }
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-            </label>
+          <div>
+            <label htmlFor="is_first_admission" className="input-label">É a primeira internação? *</label>
+            <FieldSelect
+              field="is_first_admission"
+              value={isFirstAdmission == null ? '' : String(isFirstAdmission)}
+              onChange={(field, value) => onChange(field, value === 'true')}
+              errors={errors}
+              options={[{ value: 'true', label: 'Sim' }, { value: 'false', label: 'Não' }]}
+            />
           </div>
 
-          {!isFirstAdmission && (
+          {isFirstAdmission === false && (
             <div>
               <label className="input-label" htmlFor="days_since_last_discharge">
-                Dias desde Última Alta
+                Dias desde Última Alta *
               </label>
               <input
                 id="days_since_last_discharge"
@@ -177,16 +137,20 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
                     e.target.value === '' ? '' : Number(e.target.value)
                   )
                 }
-                className="input-field"
+                className={`input-field ${errors.days_since_last_discharge ? 'input-field-error' : ''}`}
                 placeholder="Ex: 45"
+                {...fieldErrorProps(errors, 'days_since_last_discharge')}
               />
+              {errors.days_since_last_discharge && (
+                <p id="days_since_last_discharge-error" className="mt-1 text-xs text-rose-700">{errors.days_since_last_discharge}</p>
+              )}
               <p className="text-[11px] text-slate-400 mt-1">Tempo transcorrido desde a última alta</p>
             </div>
           )}
 
           {isFirstAdmission && (
             <p className="text-xs text-emerald-700 font-medium">
-              Primeira internação registrada (modelo enviará valor nulo / flag=1).
+              Sem internação anterior.
             </p>
           )}
         </div>

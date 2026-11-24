@@ -1,3 +1,4 @@
+import { fieldErrorProps } from '../constants/validation';
 import React from 'react';
 import { Pill, AlertTriangle, ShieldAlert } from 'lucide-react';
 
@@ -45,12 +46,9 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
+      <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Pill className="w-5 h-5 text-teal-600" />
-            4. Prescrições & Perfil de Medicações na Alta
-          </h2>
+          <h2 tabIndex={-1}>Medicações na alta</h2>
           <p className="text-xs text-slate-500 mt-1">
             Contagem de fármacos prescritos e detecção de medicamentos de alta relevância clínica.
           </p>
@@ -80,7 +78,11 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
             }
             className={`input-field ${errors.num_medications ? 'input-field-error' : ''}`}
             placeholder="0 a 30"
+            {...fieldErrorProps(errors, 'num_medications')}
           />
+          {errors.num_medications && (
+            <p id="num_medications-error" className="mt-1 text-xs text-rose-700">{errors.num_medications}</p>
+          )}
           <p className="text-[11px] text-slate-400 mt-1">
             Contagem de códigos NDC prescritos (≥5 ativa flag de polifarmácia)
           </p>
@@ -106,7 +108,11 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
             }
             className={`input-field ${errors.num_therapeutic_classes ? 'input-field-error' : ''}`}
             placeholder="0 a 15"
+            {...fieldErrorProps(errors, 'num_therapeutic_classes')}
           />
+          {errors.num_therapeutic_classes && (
+            <p id="num_therapeutic_classes-error" className="mt-1 text-xs text-rose-700">{errors.num_therapeutic_classes}</p>
+          )}
           <p className="text-[11px] text-slate-400 mt-1">Número de grupos farmacológicos diferentes</p>
         </div>
       </div>
@@ -121,9 +127,8 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
             const isChecked = formData[flag.key] === 1;
 
             return (
-              <div
+              <label
                 key={flag.key}
-                onClick={() => onChange(flag.key, isChecked ? 0 : 1)}
                 className={`p-4 rounded-xl border transition-all duration-150 cursor-pointer select-none flex items-start gap-3 ${
                   isChecked
                     ? 'bg-teal-50/70 border-teal-300 ring-2 ring-teal-500/20'
@@ -133,12 +138,14 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
                 <input
                   type="checkbox"
                   checked={isChecked}
-                  onChange={() => {}} // tratado no onClick do container
+                  aria-labelledby={`${flag.key}-label`}
+                  aria-describedby={`${flag.key}-description`}
+                  onChange={(event) => onChange(flag.key, event.target.checked ? 1 : 0)}
                   className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
                 />
                 <div className="flex-1">
                   <div className="text-sm font-semibold text-slate-900 flex items-center justify-between">
-                    <span>{flag.label}</span>
+                    <span id={`${flag.key}-label`}>{flag.label}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
                         isChecked ? 'bg-teal-200 text-teal-800' : 'bg-slate-100 text-slate-500'
@@ -147,9 +154,9 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
                       {isChecked ? 'SIM' : 'NÃO'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">{flag.desc}</p>
+                  <p id={`${flag.key}-description`} className="text-xs text-slate-500 mt-1 leading-relaxed">{flag.desc}</p>
                 </div>
-              </div>
+              </label>
             );
           })}
         </div>

@@ -1,0 +1,208 @@
+:root {
+  --text: #182746;
+  --muted: #485b78;
+  --line: #d7e1ef;
+  --accent: #214fa8;
+  --tint: #e9f1ff;
+  --navy: #132b50;
+  --mint: #bcddff;
+  background: #f3f6fc;
+}
+
+.app-shell { background: #f3f6fc; }
+.app-header { background: #fcfdff; }
+.app-header-inner, .workspace, .app-footer { width: min(100% - 48px, 1200px); }
+.app-header-inner { min-height: 68px; justify-content: flex-start; }
+.brand { color: #182a4b; }
+.site-nav { display: flex; align-items: center; gap: 24px; margin-inline-start: 22px; font-size: 13px; font-weight: 600; }
+.header-actions { margin-inline-start: auto; }
+.site-nav a { color: #3e516c; padding-block: 8px; }
+.site-nav a:hover, .app-footer button:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
+.workspace { padding-block: 22px 54px; }
+
+.assessment-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(42%, .9fr);
+  align-items: center;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 405px;
+  border: 1px solid #d6e1f0;
+  border-radius: 24px;
+  background: #e5edf9;
+}
+.assessment-hero::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(90deg, #eef3fd 0%, #eef3fd 32%, #eef3fdeb 43%, #edf3fb1a 63%, transparent 78%),
+    url('/hospital-ward.webp') center right / cover no-repeat;
+}
+.hero-copy { padding: 38px 22px 39px clamp(24px, 4vw, 64px); }
+.hero-context { display: flex; align-items: center; gap: 8px; color: #244f88; font-size: 13px; font-weight: 650; margin-bottom: 13px; }
+.hero-context span { width: 17px; height: 2px; background: #5780c2; }
+.hero-copy h1 {
+  color: #142544;
+  max-width: 16ch;
+  font: 800 clamp(36px, 5vw, 60px)/1.05 var(--display);
+  letter-spacing: -.062em;
+  text-wrap: balance;
+}
+.hero-copy > p:not(.hero-context) {
+  max-width: 40ch;
+  margin-top: 17px;
+  color: #3f5677;
+  font-size: clamp(14px, 1.3vw, 16px);
+  line-height: 1.65;
+}
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 15px; margin-top: 23px; }
+.hero-actions .button-primary { padding-inline: 17px; min-height: 47px; box-shadow: 0 4px 10px #193a7a29; }
+.hero-example { color: #24487d; font-weight: 650; font-size: 13px; min-height: 42px; display: inline-flex; align-items: center; gap: 6px; }
+.hero-example:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.assessment-zone { margin-top: 44px; scroll-margin-top: 18px; }
+.assessment-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 17px; }
+.assessment-heading h2, .assessment-guide h2 { font: 800 clamp(26px, 3.2vw, 34px)/1.12 var(--display); letter-spacing: -.045em; color: #152849; }
+.assessment-heading p { margin-top: 6px; color: var(--muted); font-size: 14px; }
+.assessment-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; }
+.assessment-start {
+  min-height: 246px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 30px clamp(18px, 4vw, 38px);
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: #fff;
+}
+.assessment-start h3 { font: 800 clamp(21px, 2.6vw, 27px)/1.15 var(--display); letter-spacing: -.035em; margin-top: 13px; }
+.assessment-start p { max-width: 51ch; color: var(--muted); font-size: 14px; line-height: 1.55; margin: 8px 0 17px; }
+.guide-icon { display: inline-grid; place-items: center; flex: 0 0 auto; width: 42px; height: 42px; border-radius: 10px; color: #2456a9; background: #e9f1ff; }
+.assessment-rail { display: grid; gap: 12px; }
+.example-panel { padding: 17px; background: #e7effe; border: 1px solid #cfdcf1; border-radius: 17px; scroll-margin-top: 18px; }
+.example-heading { display: flex; align-items: center; gap: 9px; }
+.example-heading .guide-icon { width: 30px; height: 30px; background: #f6f9ff; border-radius: 7px; }
+.example-heading h3 { font: 800 17px/1.2 var(--display); letter-spacing: -.02em; }
+.example-panel > p { color: #405a7e; margin: 7px 0 10px; font-size: 12px; line-height: 1.5; }
+.example-panel .sample-options { gap: 5px; }
+.example-panel .sample-options button { min-height: 36px; padding-inline: 8px; background: #f8fbff; border: 1px solid #d3dff4; color: #234779; font-weight: 650; }
+.example-panel .sample-options button:hover, .example-panel .sample-options button[aria-pressed="true"] { color: #163b85; background: #d7e6ff; border-color: #b0c5e8; }
+.case-dialog {
+  width: min(100% - 28px, 520px);
+  max-height: calc(100dvh - 28px);
+  margin: auto;
+  padding: clamp(15px, 4vw, 25px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 20px 55px #132b5033;
+}
+.case-dialog::backdrop { background: #101f3a80; }
+.case-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.case-dialog-header h2 { color: var(--navy); font: 800 clamp(19px, 4vw, 24px)/1.2 var(--display); letter-spacing: -.035em; }
+.case-dialog-header .icon-action { flex-shrink: 0; }
+.case-dialog > p { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 4px 0 14px; }
+.case-dialog-options { display: grid; gap: 7px; }
+.case-dialog-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  text-align: left;
+  color: #254b83;
+  background: #f6f9ff;
+  border: 1px solid #d6e2f5;
+  border-radius: 9px;
+  font-size: 13px;
+}
+.case-dialog-options button:hover, .case-dialog-options button[aria-pressed="true"] { background: #e9f1ff; border-color: #b4c9eb; }
+.case-dialog-options svg { flex-shrink: 0; }
+.case-description { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.assessment-rail .readmission-window { background: #183769; border-radius: 14px; padding: 15px 17px; }
+.assessment-rail .window-labels strong { font-size: 17px; }
+.assessment-rail .window-timeline { margin-top: 4px; }
+
+.assessment-form { border-radius: 17px; }
+.assessment-form .step-nav { padding: 12px; border-bottom: 1px solid var(--line); background: #f8fbff; border-radius: 16px 16px 0 0; }
+.assessment-form .step-nav ol { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.assessment-form .step-nav button { min-height: 54px; padding: 6px; gap: 6px; }
+.assessment-form .step-nav button:hover { background: #eaf1fb; }
+.assessment-form .step-nav button[aria-current] { background: #e3edff; color: #1b458b; border-color: #c1d3f0; }
+.assessment-form .step-number { width: 25px; height: 25px; flex-basis: 25px; }
+.assessment-form .step-text { font-size: 12px; line-height: 1.25; }
+.assessment-form .step-text > span { display: none; }
+.form-body, .result-body, .result-header { padding: 22px 24px; }
+.input-field { border-color: #cbd8e9; }
+.input-field:focus { box-shadow: 0 0 0 2px #9fbce344; }
+.input-field-error { border-color: #b63c4a; }
+.button-primary:hover:not(:disabled) { background: #153e8c; }
+.button-secondary:hover { background: #edf3fc; }
+.assessment-guide { margin-top: 39px; padding-top: 24px; border-top: 1px solid var(--line); scroll-margin-top: 18px; }
+.assessment-guide ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(15px, 3vw, 34px); margin-top: 18px; }
+.assessment-guide li { display: flex; align-items: flex-start; gap: 12px; }
+.assessment-guide h3 { font: 800 16px/1.2 var(--display); }
+.assessment-guide p { margin-top: 4px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.app-footer button { font-weight: 650; color: #274f91; border-radius: 4px; }
+
+@media (max-width: 900px) {
+  .site-nav { gap: 16px; margin-inline-start: 10px; }
+  .assessment-hero { min-height: 360px; grid-template-columns: minmax(0, 1.06fr) minmax(34%, .7fr); }
+  .assessment-layout { grid-template-columns: minmax(0, 1fr) 232px; gap: 14px; }
+}
+@media (max-width: 710px) {
+  .site-nav { display: none; }
+  .assessment-layout { grid-template-columns: minmax(0, 1fr); }
+  .assessment-hero {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-height: auto;
+    padding-bottom: clamp(115px, 28vw, 185px);
+    border-radius: 19px;
+  }
+  .assessment-hero::before {
+    inset: auto 0 0;
+    height: 52%;
+    background:
+      linear-gradient(180deg, #e5edf9 0%, #e5edf900 54%),
+      url('/hospital-ward.webp') 76% 52% / cover no-repeat;
+  }
+  .hero-copy { padding: 24px 21px 5px; }
+  .hero-copy h1 { font-size: clamp(32px, 7vw, 46px); }
+  .hero-copy > p:not(.hero-context) { margin-top: 11px; }
+  .hero-actions { margin-top: 13px; }
+  .assessment-zone { margin-top: 31px; }
+  .assessment-guide ol { grid-template-columns: minmax(0, 1fr); }
+  .assessment-rail .readmission-window { display: none; }
+}
+@media (max-width: 540px) {
+  .app-header-inner, .workspace, .app-footer { width: calc(100% - 30px); }
+  .workspace { padding-top: 14px; }
+  .app-header-inner { flex-wrap: nowrap; min-height: 56px; gap: 4px; }
+  .brand { gap: 6px; font-size: 15px; }
+  .brand-icon { flex-basis: 27px; width: 27px; height: 27px; }
+  .brand-icon svg { width: 17px; }
+  .header-actions { gap: 2px; }
+  .model-action { width: 31px; }
+  .api-label { font-size: 10px; gap: 4px; }
+  .api-label::before { width: 6px; height: 6px; flex-basis: 6px; }
+  .hero-actions { gap: 7px 10px; }
+  .hero-example { font-size: 12px; }
+  .form-body, .result-body, .result-header { padding: 17px; }
+  .assessment-form .step-nav { padding: 7px; }
+  .assessment-form .step-nav ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .assessment-form .step-nav button { min-height: 39px; }
+}
+@media print {
+  :root, .app-shell { background: white; }
+  .workspace { width: 100%; padding: 0; }
+  .assessment-hero, .assessment-heading, .assessment-guide, .assessment-rail { display: none !important; }
+  .assessment-zone { margin: 0; }
+  .assessment-layout { display: block; }
+}

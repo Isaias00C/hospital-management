@@ -1,0 +1,34 @@
+name: Teste da versão web
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_url:
+        description: URL HTTPS do front publicado
+        required: true
+        type: string
+      api_url:
+        description: URL HTTPS da API publicada
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Validar front e API publicados
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: node scripts/smoke-web.mjs
+        env:
+          FRONTEND_URL: ${{ inputs.frontend_url }}
+          API_URL: ${{ inputs.api_url }}

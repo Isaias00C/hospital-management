@@ -23,6 +23,18 @@ def test_health_degraded_without_model(client_without_model):
     assert body["model_loaded"] is False
 
 
+def test_readiness_ok(client):
+    ready = client.get("/ready")
+    assert ready.status_code == 200
+    assert ready.json()["model_loaded"] is True
+
+
+def test_readiness_unavailable_without_model(client_without_model):
+    unavailable = client_without_model.get("/ready")
+    assert unavailable.status_code == 503
+    assert unavailable.json()["model_loaded"] is False
+
+
 def test_predict_ok(client, payload):
     res = client.post(URL, json=payload)
     assert res.status_code == 200

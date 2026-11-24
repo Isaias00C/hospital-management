@@ -27,7 +27,7 @@ Aplicação web desenvolvida em **React 18** com **Vite** e **Tailwind CSS**, es
 
 - **Resiliência e Conectividade:**
   - Health check dinâmico com indicador de status da API no cabeçalho.
-  - Tratamento inteligente de *Cold Start* com aviso educativo para instâncias gratuitas no Render (que hibernam após 15 minutos).
+  - Aviso durante respostas lentas e mensagens distintas para API sem resposta e modelo indisponível.
   - Validações completas client-side com mensagens inline de limites clínicos.
   - Modal com documentação acadêmica e métricas do modelo (Accuracy, F1, AUC-ROC, matriz de confusão) para a banca examinadora do IFCE.
 
@@ -68,13 +68,9 @@ frontend/
 
 ## ⚙️ Configuração
 
-Crie um arquivo `.env` na pasta `frontend/`:
+No desenvolvimento, o Vite encaminha `/health` e `/api` para `http://127.0.0.1:8000`. Para usar outro backend, configure `VITE_API_URL` em `frontend/.env` e reinicie o Vite.
 
-```env
-VITE_API_URL=http://localhost:8000
-```
-
-Para produção no Vercel ou Render, aponte `VITE_API_URL` para a URL pública do backend FastAPI.
+Para produção com frontend e backend em domínios diferentes, configure `VITE_API_URL` com a URL pública da API **antes do build** e inclua a origem do frontend no `CORS_ORIGINS` do backend. Se o servidor hospeda os dois na mesma origem, encaminhe as duas rotas para a API.
 
 ---
 
@@ -84,8 +80,8 @@ Para produção no Vercel ou Render, aponte `VITE_API_URL` para a URL pública d
 # Acessar a pasta frontend
 cd frontend
 
-# Instalar dependências
-npm install
+# Instalar as dependências do lockfile
+npm ci
 
 # Iniciar o servidor de desenvolvimento Vite
 npm run dev
@@ -93,6 +89,16 @@ npm run dev
 # Gerar build de produção
 npm run build
 ```
+
+Em outro terminal, a partir da raiz do repositório, inicie a API com `uv` e Python 3.13 ou superior:
+
+```bash
+cd backend
+uv sync --locked
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Abra `http://localhost:8000/health` e confira `"model_loaded": true`. Se a página estiver inacessível, verifique o processo da API. Se ela responder com `"model_loaded": false`, verifique os logs do backend para identificar por que o modelo não carregou.
 
 ---
 
