@@ -1,0 +1,958 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 01_exploracao.ipynb — Análise Exploratória e Feature Engineering\n",
+    "\n",
+    "**Projeto**: Predição de Readmissão Hospitalar 30 Dias (`readmission_30d`)\n",
+    "**Dataset**: Hospital Management Data (Kaggle) — 5 CSVs + 1 XLSX\n",
+    "**Alvo**: Classificação binária supervisionada com **Naive Bayes** (Scikit-Learn)\n",
+    "**Autor**: Patric — Disciplina Probabilidade e Estatística (IFCE)\n",
+    "\n",
+    "---\n",
+    "\n",
+    "## Objetivos deste Notebook\n",
+    "\n",
+    "1. **Carregar e inspecionar** os 4 CSVs principais (`patients`, `visits_encounters`, `clinical_details`, `pharmacy_prescriptions`)\n",
+    "2. **Juntar tabelas** por `encounter_id` + `patient_id` → base unificada por encounter\n",
+    "3. **Feature Engineering**: agregações de pharmacy, bins de LOS, flags clínicas, `first_admission_flag`\n",
+    "4. **EDA completa** por bloco: Demografia, Internação, Clínico na Alta, Medicações\n",
+    "5. **Análise de missingness** e correlações com `readmission_30d`\n",
+    "6. **Definir lista final de features** (removendo vazamento: `discharge_disposition`, `icu_admitted`, `in_hospital_mortality`)\n",
+    "7. **Justificar** cada decisão em markdown para apresentação\n",
+    "\n",
+    "---\n",
+    "\n",
+    "## 1. Imports e Configuração"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import warnings\n",
+    "from pathlib import Path\n",
+    "\n",
+    "# Configurações\n",
+    "warnings.filterwarnings('ignore')\n",
+    "pd.set_option('display.max_columns', 100)\n",
+    "pd.set_option('display.max_rows', 100)\n",
+    "pd.set_option('display.width', 200)\n",
+    "sns.set_style('whitegrid')\n",
+    "plt.rcParams['figure.figsize'] = (12, 6)\n",
+    "plt.rcParams['font.size'] = 11\n",
+    "\n",
+    "# Seed para reprodutibilidade (conforme CLAUDE.md)\n",
+    "RANDOM_STATE = 42\n",
+    "\n",
+    "# Caminhos dos dados\n",
+    "DATA_DIR = Path('../data')\n",
+    "FILES = {\n",
+    "    'patients': 'patients.csv',\n",
+    "    'visits': 'visits_encounters.csv',\n",
+    "    'clinical': 'clinical_details.csv',\n",
+    "    'pharmacy': 'pharmacy_prescriptions.csv',\n",
+    "    'billing': 'hospital_billing.csv',  # não usado no modelo (vazamento)\n",
+    "}\n",
+    "\n",
+    "for name, fname in FILES.items():\n",
+    "    path = DATA_DIR / fname\n",
+    "    print(f'{name:12s}: {path.exists()} — {path.stat().st_size/1e6:.1f} MB' if path.exists() else f'{name:12s}: NÃO ENCONTRADO')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Carregamento e Inspeção Inicial"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Carregar CSVs principais\n",
+    "patients = pd.read_csv(DATA_DIR / FILES['patients'])\n",
+    "visits = pd.read_csv(DATA_DIR / FILES['visits'])\n",
+    "clinical = pd.read_csv(DATA_DIR / FILES['clinical'])\n",
+    "pharmacy = pd.read_csv(DATA_DIR / FILES['pharmacy'])\n",
+    "\n",
+    "print('=== SHAPES ===')\n",
+    "for name, df in [('patients', patients), ('visits', visits), ('clinical', clinical), ('pharmacy', pharmacy)]:\n",
+    "    print(f'{name:12s}: {df.shape[0]:>6,} linhas × {df.shape[1]:>2} colunas')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Colunas de cada tabela\n",
+    "for name, df in [('patients', patients), ('visits', visits), ('clinical', clinical), ('pharmacy', pharmacy)]:\n",
+    "    print(f'\\n=== {name.upper()} ({df.shape[1]} cols) ===')\n",
+    "    print(list(df.columns))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Head + dtypes + nulos — patients\n",
+    "print('=== PATIENTS ===')\n",
+    "display(patients.head(3))\n",
+    "print('\\nDtypes:')\n",
+    "print(patients.dtypes)\n",
+    "print('\\nNulos (%):')\n",
+    "print((patients.isnull().mean() * 100).round(2).sort_values(ascending=False))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Head + dtypes + nulos — visits_encounters\n",
+    "print('=== VISITS_ENCOUNTERS ===')\n",
+    "display(visits.head(3))\n",
+    "print('\\nDtypes:')\n",
+    "print(visits.dtypes)\n",
+    "print('\\nNulos (%):')\n",
+    "print((visits.isnull().mean() * 100).round(2).sort_values(ascending=False))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Head + dtypes + nulos — clinical_details\n",
+    "print('=== CLINICAL_DETAILS ===')\n",
+    "display(clinical.head(3))\n",
+    "print('\\nDtypes:')\n",
+    "print(clinical.dtypes)\n",
+    "print('\\nNulos (%):')\n",
+    "print((clinical.isnull().mean() * 100).round(2).sort_values(ascending=False))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Head + dtypes + nulos — pharmacy_prescriptions\n",
+    "print('=== PHARMACY_PRESCRIPTIONS ===')\n",
+    "display(pharmacy.head(3))\n",
+    "print('\\nDtypes:')\n",
+    "print(pharmacy.dtypes)\n",
+    "print('\\nNulos (%):')\n",
+    "print((pharmacy.isnull().mean() * 100).round(2).sort_values(ascending=False))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Verificação de Chaves de Junção\n",
+    "\n",
+    "As 4 tabelas principais têm `encounter_id` e `patient_id`. Vamos confirmar cardinalidade e unicidade."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Verificar chaves\n",
+    "print('=== UNICIDADE ===')\n",
+    "print(f'patients.patient_id único: {patients[\"patient_id\"].nunique()} / {len(patients)} = {patients[\"patient_id\"].nunique()/len(patients):.2%}')\n",
+    "print(f'visits.encounter_id único: {visits[\"encounter_id\"].nunique()} / {len(visits)} = {visits[\"encounter_id\"].nunique()/len(visits):.2%}')\n",
+    "print(f'clinical.encounter_id único: {clinical[\"encounter_id\"].nunique()} / {len(clinical)} = {clinical[\"encounter_id\"].nunique()/len(clinical):.2%}')\n",
+    "print(f'pharmacy.encounter_id únicos: {pharmacy[\"encounter_id\"].nunique()} / {len(pharmacy)} linhas')\n",
+    "\n",
+    "# Quantos encounters por paciente em pharmacy\n",
+    "pharmacy_enc_counts = pharmacy.groupby('encounter_id').size()\n",
+    print(f'\\nPrescrições por encounter: média={pharmacy_enc_counts.mean():.1f}, max={pharmacy_enc_counts.max()}, min={pharmacy_enc_counts.min()}')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Target: `readmission_30d` (em visits_encounters)\n",
+    "\n",
+    "Confirmar distribuição e balanceamento."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Distribuição do target\n",
+    "target = visits['readmission_30d']\n",
+    "vc = target.value_counts().sort_index()\n",
+    "vc_pct = target.value_counts(normalize=True).sort_index() * 100\n",
+    "\n",
+    "print('=== READMISSION_30D ===')\n",
+    "for val in vc.index:\n",
+    "    print(f'  Classe {val}: {vc[val]:>6,} ({vc_pct[val]:.1f}%)')\n",
+    "\n",
+    "# Verificar nulos no target\n",
+    "print(f'\\nNulos no target: {target.isnull().sum()} ({target.isnull().mean()*100:.2f}%)')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Visualização do target\n",
+    "fig, axes = plt.subplots(1, 2, figsize=(12, 4))\n",
+    "\n",
+    "vc.plot(kind='bar', ax=axes[0], color=['#2ecc71', '#e74c3c'])\n",
+    "axes[0].set_title('Distribuição de readmission_30d')\n",
+    "axes[0].set_xlabel('Classe (0=Não, 1=Sim)')\n",
+    "axes[0].set_ylabel('Contagem')\n",
+    "axes[0].tick_params(rotation=0)\n",
+    "for i, v in enumerate(vc):\n",
+    "    axes[0].text(i, v + 50, f'{v:,}\\n({vc_pct.iloc[i]:.1f}%)', ha='center')\n",
+    "\n",
+    "# Boxplot de LOS por target\n",
+    "sns.boxplot(data=visits, x='readmission_30d', y='length_of_stay_days', ax=axes[1])\n",
+    "axes[1].set_title('Length of Stay por Readmissão')\n",
+    "axes[1].set_xlabel('Readmissão 30d')\n",
+    "axes[1].set_ylabel('Dias de Internação')\n",
+    "\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Feature Engineering — Pharmacy (agregação por encounter)\n",
+    "\n",
+    "Criar features derivadas de `pharmacy_prescriptions` agregadas por `encounter_id`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Explorar pharmacy para definir features\n",
+    "print('Classes terapêuticas únicas:', pharmacy['therapeutic_class'].nunique())\n",
+    "print('Top 20 therapeutic_class:')\n",
+    "print(pharmacy['therapeutic_class'].value_counts().head(20))\n",
+    "\n",
+    "print('\\nHigh risk medication flag:')\n",
+    "print(pharmacy['high_risk_medication_flag'].value_counts())\n",
+    "\n",
+    "print('\\nDrug names únicos (sample):', pharmacy['drug_name'].nunique())\n",
+    "print(pharmacy['drug_name'].value_counts().head(15))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Definir mapeamentos de classes de risco conhecidas\n",
+    "anticoagulants = {'warfarin', 'apixaban', 'rivaroxaban', 'dabigatran', 'edoxaban', 'heparin', 'enoxaparin'}\n",
+    "insulins = {'insulin', 'insulin glargine', 'insulin aspart', 'insulin lispro', 'insulin detemir', 'insulin NPH', 'insulin regular'}\n",
+    "diuretics = {'furosemide', 'hydrochlorothiazide', 'spironolactone', 'bumetanide', 'torsemide', 'chlorthalidone', 'indapamide'}\n",
+    "beta_blockers = {'metoprolol', 'carvedilol', 'atenolol', 'bisoprolol', 'propranolol', 'nebivolol', 'labetalol'}\n",
+    "ace_arbs = {'lisinopril', 'enalapril', 'ramipril', 'captopril', 'losartan', 'valsartan', 'irbesartan', 'olmesartan', 'telmisartan', 'candesartan'}\n",
+    "\n",
+    "def classify_med(row):\n",
+    "    name = str(row['drug_name']).lower()\n",
+    "    flags = {}\n",
+    "    flags['has_anticoagulant'] = any(med in name for med in anticoagulants)\n",
+    "    flags['has_insulin'] = any(med in name for med in insulins)\n",
+    "    flags['has_diuretic'] = any(med in name for med in diuretics)\n",
+    "    flags['has_beta_blocker'] = any(med in name for med in beta_blockers)\n",
+    "    flags['has_ace_arb'] = any(med in name for med in ace_arbs)\n",
+    "    return pd.Series(flags)\n",
+    "\n",
+    "# Aplicar classificação\n",
+    "med_flags = pharmacy.apply(classify_med, axis=1)\n",
+    "pharmacy_flagged = pd.concat([pharmacy[['encounter_id', 'patient_id', 'therapeutic_class', 'high_risk_medication_flag', 'ndc_code']], med_flags], axis=1)\n",
+    "\n",
+    "# Agregar por encounter_id\n",
+    "pharmacy_agg = pharmacy_flagged.groupby('encounter_id').agg(\n",
+    "    num_medications=('ndc_code', 'nunique'),\n",
+    "    num_therapeutic_classes=('therapeutic_class', 'nunique'),\n",
+    "    has_high_risk_med=('high_risk_medication_flag', 'max'),\n",
+    "    has_anticoagulant=('has_anticoagulant', 'max'),\n",
+    "    has_insulin=('has_insulin', 'max'),\n",
+    "    has_diuretic=('has_diuretic', 'max'),\n",
+    "    has_beta_blocker=('has_beta_blocker', 'max'),\n",
+    "    has_ace_arb=('has_ace_arb', 'max'),\n",
+    ").reset_index()\n",
+    "\n",
+    "# Flag de polifarmácia (≥5 medicações)\n",
+    "pharmacy_agg['polypharmacy_flag'] = (pharmacy_agg['num_medications'] >= 5).astype(int)\n",
+    "\n",
+    "print(f'Pharmacy agregado: {pharmacy_agg.shape[0]:,} encounters únicos')\n",
+    "display(pharmacy_agg.head())\n",
+    "print('\\nEstatísticas:')\n",
+    "print(pharmacy_agg.describe().round(2))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Feature Engineering — Clinical Details (vitals/labs na alta)\n",
+    "\n",
+    "Para cada encounter, pegar os **últimos registros clínicos** (mais próximos da alta) — assumindo que `clinical_details` tem timestamp ou ordem."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Verificar se clinical_details tem timestamp ou ordem\n",
+    "print('Colunas clinical_details:', list(clinical.columns))\n",
+    "print('\\nPrimeiras linhas:')\n",
+    "display(clinical[['encounter_id', 'patient_id']].head(10))\n",
+    "\n",
+    "# Assumir que a última linha por encounter = mais próxima da alta\n",
+    "# (dataset sintético costuma vir ordenado)\n",
+    "clinical_latest = clinical.sort_values(['encounter_id']).groupby('encounter_id').last().reset_index()\n",
+    "\n",
+    "# Features clínicas na alta\n",
+    "clinical_features = [\n",
+    "    'systolic_bp', 'diastolic_bp', 'heart_rate', 'respiratory_rate',\n",
+    "    'temperature', 'spo2', 'glucose', 'creatinine', 'hemoglobin', 'wbc_count',\n",
+    "    'disease_category', 'disease_severity'\n",
+    "]\n",
+    "\n",
+    "# Verificar quais existem\n",
+    "available = [c for c in clinical_features if c in clinical_latest.columns]\n",
+    "missing = [c for c in clinical_features if c not in clinical_latest.columns]\n",
+    "print(f'Disponíveis ({len(available)}): {available}')\n",
+    "print(f'Faltando ({len(missing)}): {missing}')\n",
+    "\n",
+    "clinical_final = clinical_latest[['encounter_id', 'patient_id'] + available].copy()\n",
+    "print(f'\\nClinical final shape: {clinical_final.shape}')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Estatísticas das features clínicas numéricas\n",
+    "num_clinical = ['systolic_bp', 'diastolic_bp', 'heart_rate', 'respiratory_rate',\n",
+    "                'temperature', 'spo2', 'glucose', 'creatinine', 'hemoglobin', 'wbc_count']\n",
+    "num_clinical = [c for c in num_clinical if c in clinical_final.columns]\n",
+    "display(clinical_final[num_clinical].describe().round(2).T)\n",
+    "\n",
+    "# Nulos\n",
+    "print('\\nNulos (%):')\n",
+    "print((clinical_final[num_clinical].isnull().mean() * 100).round(2))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Distribuição das categóricas clínicas\n",
+    "for col in ['disease_category', 'disease_severity']:\n",
+    "    if col in clinical_final.columns:\n",
+    "        print(f'\\n=== {col} ===')\n",
+    "        vc = clinical_final[col].value_counts()\n",
+    "        vc_pct = clinical_final[col].value_counts(normalize=True) * 100\n",
+    "        for idx in vc.index:\n",
+    "            print(f'  {idx}: {vc[idx]:,} ({vc_pct[idx]:.1f}%)')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7. Feature Engineering — Visits (bins e flags)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Criar bins de LOS\n",
+    "visits_feat = visits.copy()\n",
+    "\n",
+    "bins_los = [0, 1, 3, 7, 60]\n",
+    "labels_los = ['0-1', '2-3', '4-7', '8+']\n",
+    "visits_feat['los_category'] = pd.cut(visits_feat['length_of_stay_days'], bins=bins_los, labels=labels_los, right=True)\n",
+    "\n",
+    "# Flag de primeira internação (days_since_last_discharge é NaN)\n",
+    "visits_feat['first_admission_flag'] = visits_feat['days_since_last_discharge'].isnull().astype(int)\n",
+    "\n",
+    "# Para primeira internação, preencher days_since_last_discharge com valor sentinela (ex: -1) ou mediana\n",
+    "# Vamos usar -1 para distinguir; o pré-processamento depois trata\n",
+    "visits_feat['days_since_last_discharge_filled'] = visits_feat['days_since_last_discharge'].fillna(-1)\n",
+    "\n",
+    "print('LOS Category distribution:')\n",
+    "print(visits_feat['los_category'].value_counts().sort_index())\n",
+    "print(f'\\nFirst admission flag: {visits_feat[\"first_admission_flag\"].mean()*100:.1f}%')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 8. Feature Engineering — Patients (demografia + comorbidades)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Features de patients\n",
+    "patients_feat = patients.copy()\n",
+    "\n",
+    "# Flag idoso\n",
+    "patients_feat['is_elderly'] = (patients_feat['age'] >= 65).astype(int)\n",
+    "\n",
+    "# Verificar nulos nas features que vamos usar\n",
+    "patient_features = [\n",
+    "    'patient_id', 'age', 'is_elderly', 'gender', 'charlson_comorbidity_index',\n",
+    "    'baseline_bmi', 'smoker_status', 'socioeconomic_tier', 'residential_zone',\n",
+    "    'marital_status'\n",
+    "]\n",
+    "patient_features = [c for c in patient_features if c in patients_feat.columns]\n",
+    "print('Features de patients disponíveis:')\n",
+    for c in patient_features:\n",
+    "    nnull = patients_feat[c].isnull().mean() * 100\n",
+    "    dtype = patients_feat[c].dtype\n",
+    "    print(f'  {c:35s} | {dtype} | {nnull:.1f}% nulos')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 9. Join das 4 Tabelas → Base Unificada"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Join sequência: visits (base) + patients + clinical_latest + pharmacy_agg\n",
+    "print('Shapes antes do join:')\n",
+    "print(f'  visits_feat: {visits_feat.shape}')\n",
+    "print(f'  patients_feat: {patients_feat.shape}')\n",
+    "print(f'  clinical_final: {clinical_final.shape}')\n",
+    "print(f'  pharmacy_agg: {pharmacy_agg.shape}')\n",
+    "\n",
+    "# 1. visits + patients (por patient_id)\n",
+    "df = visits_feat.merge(patients_feat[patient_features], on='patient_id', how='left', validate='m:1')\n",
+    "print(f'\\nApós join patients: {df.shape}')\n",
+    "\n",
+    "# 2. + clinical (por encounter_id)\n",
+    "clinical_cols = ['encounter_id'] + [c for c in clinical_final.columns if c not in ['encounter_id', 'patient_id']]\n",
+    "df = df.merge(clinical_final[clinical_cols], on='encounter_id', how='left', validate='1:1')\n",
+    "print(f'Após join clinical: {df.shape}')\n",
+    "\n",
+    "# 3. + pharmacy (por encounter_id)\n",
+    "df = df.merge(pharmacy_agg, on='encounter_id', how='left', validate='1:1')\n",
+    "print(f'Após join pharmacy: {df.shape}')\n",
+    "\n",
+    "# Verificar nulos introduzidos pelos joins left\n",
+    "print('\\nNulos após joins (% > 0):')\n",
+    "nulls = (df.isnull().mean() * 100).round(2)\n",
+    "print(nulls[nulls > 0].sort_values(ascending=False))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 10. Remoção de Vazamento (Data Leakage)\n",
+    "\n",
+    "**CRÍTICO**: Remover colunas que só existem **após** o resultado que queremos prever (readmissão 30d).\n",
+    "\n",
+    "| Coluna | Por que remove |\n",
+    "|--------|----------------|\n",
+    "| `discharge_disposition` | Destino da alta (Home, SNF, Expired...) — **consequência** da internação, vazamento direto |\n",
+    "| `icu_admitted` | Se foi para UTI — fortemente correlacionado com gravidade e readmissão |\n",
+    "| `in_hospital_mortality` | Se morreu no hospital — readmissão = 0 por definição, vazamento total |\n",
+    "| `readmission_30d` | **Target** — não é feature |\n",
+    "| `previous_encounter_id` | ID do encounter anterior — não preditivo |\n",
+    "| Identificadores | `encounter_id`, `patient_id` — não preditivos |\n",
+    "| Datas brutas | `admission_date`, `discharge_date` — usar apenas features derivadas (LOS, bins) |"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Colunas a remover (vazamento + IDs + datas)\n",
+    "leak_cols = [\n",
+    "    'readmission_30d',          # TARGET\n",
+    "    'discharge_disposition',    # VAZAMENTO\n",
+    "    'icu_admitted',             # VAZAMENTO\n",
+    "    'in_hospital_mortality',    # VAZAMENTO\n",
+    "    'encounter_id',             # ID\n",
+    "    'patient_id',               # ID\n",
+    "    'previous_encounter_id',    # ID não preditivo\n",
+    "    'admission_date',           # DATA bruta\n",
+    "    'discharge_date',           # DATA bruta\n",
+    "    'days_since_last_discharge', # ORIGINAL com NaN (usamos _filled + flag)\n",
+    "]\n",
+    "\n",
+    "# Remover apenas as que existem\n",
+    "leak_existing = [c for c in leak_cols if c in df.columns]\n",
+    "df_model = df.drop(columns=leak_existing).copy()\n",
+    "\n",
+    "print(f'Colunas removidas ({len(leak_existing)}): {leak_existing}')\n",
+    "print(f'Shape final para modelagem: {df_model.shape}')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 11. Definição Final de Features e Target"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Separar X e y\n",
+    "y = df['readmission_30d'].astype(int)  # target original (antes do drop)\n",
+    "X = df_model.copy()\n",
+    "\n",
+    "# Classificar features por tipo\n",
+    "numeric_features = []\n",
+    "categorical_features = []\n",
+    "\n",
+    "for col in X.columns:\n",
+    "    if X[col].dtype in ['int64', 'float64', 'int32', 'float32']:\n",
+    "        # Heurística: se poucas categorias únicas e parece categórica\n",
+    "        if X[col].nunique() <= 10 and col not in ['age', 'charlson_comorbidity_index', 'length_of_stay_days',\n",
+    "                                                    'revisit_count', 'days_since_last_discharge_filled',\n",
+    "                                                    'num_medications', 'num_therapeutic_classes']:\n",
+    "            categorical_features.append(col)\n",
+    "        else:\n",
+    "            numeric_features.append(col)\n",
+    "    else:\n",
+    "        categorical_features.append(col)\n",
+    "\n",
+    "print(f'=== FEATURES NUMÉRICAS ({len(numeric_features)}) ===')\n",
+    "for f in numeric_features:\n",
+    "    print(f'  {f}')\n",
+    "\n",
+    "print(f'\\n=== FEATURES CATEGÓRICAS ({len(categorical_features)}) ===')\n",
+    "for f in categorical_features:\n",
+    "    nuniq = X[f].nunique()\n",
+    "    print(f'  {f:40s} | {nuniq:2d} únicos | nulos: {X[f].isnull().mean()*100:.1f}%')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 12. Análise de Missingness Final"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Missingness por feature\n",
+    "missing_df = pd.DataFrame({\n",
+    "    'feature': X.columns,\n",
+    "    'missing_pct': (X.isnull().mean() * 100).values,\n",
+    "    'dtype': X.dtypes.values\n",
+    "}).sort_values('missing_pct', ascending=False)\n",
+    "\n",
+    "print('=== MISSINGNESS (top 20) ===')\n",
+    "print(missing_df.head(20).to_string(index=False))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Visualizar missingness\n",
+    "fig, ax = plt.subplots(figsize=(10, 8))\n",
+    "missing_plot = missing_df[missing_df['missing_pct'] > 0].head(20)\n",
+    "bars = ax.barh(range(len(missing_plot)), missing_plot['missing_pct'], color='#e74c3c')\n",
+    "ax.set_yticks(range(len(missing_plot)))\n",
+    "ax.set_yticklabels(missing_plot['feature'])\n",
+    "ax.set_xlabel('% Valores Faltantes')\n",
+    "ax.set_title('Missingness por Feature (>0%)')\n",
+    "ax.invert_yaxis()\n",
+    "for i, (_, row) in enumerate(missing_plot.iterrows()):\n",
+    "    ax.text(row['missing_pct'] + 0.5, i, f'{row[\"missing_pct\"]:.1f}%', va='center')\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 13. EDA — Correlações com Target (Features Numéricas)"
+   ]
+  ],
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Correlação point-biserial (numérica vs binária) ≈ Pearson para target 0/1\n",
+    "from scipy.stats import pointbiserialr\n",
+    "\n",
+    "corrs = {}\n",
+    "for col in numeric_features:\n",
+    "    if X[col].notna().sum() > 10:  # precisa de dados válidos\n",
+    "        mask = X[col].notna()\n",
+    "        try:\n",
+    "            r, p = pointbiserialr(X.loc[mask, col], y[mask])\n",
+    "            corrs[col] = {'r': r, 'p': p}\n",
+    "        except:\n",
+    "            pass\n",
+    "\n",
+    "corr_df = pd.DataFrame(corrs).T.sort_values('r', key=abs, ascending=False)\n",
+    "print('=== CORRELAÇÕES POINT-BISERIAL COM TARGET (|r| > 0.05) ===')\n",
+    "print(corr_df[corr_df['r'].abs() > 0.05].round(4).to_string())\n",
+    "\n",
+    "# Top 10 positivas e negativas\n",
+    "print('\\n--- TOP 10 POSITIVAS (maior readmissão) ---')\n",
+    "print(corr_df.nlargest(10, 'r')[['r', 'p']].round(4))\n",
+    "print('\\n--- TOP 10 NEGATIVAS (menor readmissão) ---')\n",
+    "print(corr_df.nsmallest(10, 'r')[['r', 'p']].round(4))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Heatmap das top correlações\n",
+    "top_corr = corr_df[corr_df['r'].abs() > 0.05].index.tolist()\n",
+    "if len(top_corr) > 1:\n",
+    "    corr_matrix = X[top_corr].corr()\n",
+    "    \n",
+    "    plt.figure(figsize=(12, 10))\n",
+    "    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))\n",
+    "    sns.heatmap(corr_matrix, mask=mask, annot=True, fmt='.2f', cmap='RdBu_r',\n",
+    "                center=0, square=True, cbar_kws={'shrink': 0.8})\n",
+    "    plt.title('Correlação entre Features Numéricas (|r| > 0.05 com target)')\n",
+    "    plt.tight_layout()\n",
+    "    plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 14. EDA — Features Categóricas vs Target"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Taxa de readmissão por categoria\n",
+    "cat_target_rates = {}\n",
+    "\n",
+    "for col in categorical_features:\n",
+    "    if X[col].notna().sum() > 0:\n",
+    "        # Agrupar categorias raras (< 1% das amostras) em 'Other'\n",
+    "        vc = X[col].value_counts(normalize=True)\n",
+    "        rare = vc[vc < 0.01].index.tolist()\n",
+    "        \n",
+    "        col_clean = X[col].copy()\n",
+    "        if rare:\n",
+    "            col_clean = col_clean.replace(rare, 'Other')\n",
+    "        \n",
+    "        # Calcular readmission rate por categoria\n",
+    "        rates = pd.DataFrame({'feature': col_clean, 'target': y}).groupby('feature')['target'].agg(['mean', 'count'])\n",
+    "        rates.columns = ['readmission_rate', 'count']\n",
+    "        rates = rates.sort_values('readmission_rate', ascending=False)\n",
+    "        cat_target_rates[col] = rates\n",
+    "        \n",
+    "        print(f'\\n=== {col} (readmission rate) ===')\n",
+    "        print(rates.round(4).to_string())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 15. Distribuições das Features Numéricas por Classe do Target"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Boxplots das top features numéricas correlacionadas\n",
+    "top_numeric = corr_df.nlargest(8, 'r').index.tolist() + corr_df.nsmallest(4, 'r').index.tolist()\n",
+    "top_numeric = [c for c in top_numeric if c in X.columns][:10]\n",
+    "\n",
+    "fig, axes = plt.subplots(2, 5, figsize=(20, 8))\n",
+    "axes = axes.flatten()\n",
+    "\n",
+    "for i, col in enumerate(top_numeric):\n",
+    "    if i >= 10:\n",
+    "        break\n",
+    "    data = pd.DataFrame({'feature': X[col], 'target': y}).dropna()\n",
+    "    sns.boxplot(data=data, x='target', y='feature', ax=axes[i])\n",
+    "    axes[i].set_title(f'{col} (r={corr_df.loc[col, \"r\"]:.3f})')\n",
+    "    axes[i].set_xlabel('Readmissão')\n",
+    "    axes[i].set_ylabel('')\n",
+    "\n",
+    "# Esconder eixos extras\n",
+    "for j in range(i+1, 10):\n",
+    "    axes[j].set_visible(False)\n",
+    "\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 16. Lista Final de Features Selecionadas (28 features)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Definir lista final ordenada (importante para CONTRATO.md e backend)\n",
+    "final_features = [\n",
+    "    # Demografia (9)\n",
+    "    'age',\n",
+    "    'gender',\n",
+    "    'charlson_comorbidity_index',\n",
+    "    'baseline_bmi',\n",
+    "    'smoker_status',\n",
+    "    'socioeconomic_tier',\n",
+    "    'residential_zone',\n",
+    "    'marital_status',\n",
+    "    'is_elderly',\n",
+    "    \n",
+    "    # Internação (8)\n",
+    "    'encounter_type',\n",
+    "    'admission_urgency',\n",
+    "    'department',\n",
+    "    'length_of_stay_days',\n",
+    "    'los_category',\n",
+    "    'revisit_count',\n",
+    "    'days_since_last_discharge_filled',\n",
+    "    'first_admission_flag',\n",
+    "    \n",
+    "    # Clínico na Alta (12)\n",
+    "    'systolic_bp',\n",
+    "    'diastolic_bp',\n",
+    "    'heart_rate',\n",
+    "    'respiratory_rate',\n",
+    "    'temperature',\n",
+    "    'spo2',\n",
+    "    'glucose',\n",
+    "    'creatinine',\n",
+    "    'hemoglobin',\n",
+    "    'wbc_count',\n",
+    "    'disease_category',\n",
+    "    'disease_severity',\n",
+    "    \n",
+    "    # Medicações na Alta (9)\n",
+    "    'num_medications',\n",
+    "    'num_therapeutic_classes',\n",
+    "    'polypharmacy_flag',\n",
+    "    'has_high_risk_med',\n",
+    "    'has_anticoagulant',\n",
+    "    'has_insulin',\n",
+    "    'has_diuretic',\n",
+    "    'has_beta_blocker',\n",
+    "    'has_ace_arb',\n",
+    "]\n",
+    "\n",
+    "# Verificar quais existem no dataframe final\n",
+    "existing = [f for f in final_features if f in X.columns]\n",
+    "missing_feats = [f for f in final_features if f not in X.columns]\n",
+    "\n",
+    "print(f'Features existentes: {len(existing)}')\n",
+    "print(f'Features faltando: {len(missing_feats)}')\n",
+    "if missing_feats:\n",
+    "    print(f'  Faltando: {missing_feats}')\n",
+    "\n",
+    "# Separar numéricas e categóricas da lista final\n",
+    "final_numeric = [f for f in existing if f in numeric_features]\n",
+    "final_categorical = [f for f in existing if f in categorical_features]\n",
+    "\n",
+    "print(f'\\nNuméricas finais ({len(final_numeric)}): {final_numeric}')\n",
+    "print(f'Categóricas finais ({len(final_categorical)}): {final_categorical}')\n",
+    "\n",
+    "# X_final com ordem fixa\n",
+    "X_final = X[existing].copy()\n",
+    "print(f'\\nX_final shape: {X_final.shape}')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 17. Justificativa das Features (para apresentação)\n",
+    "\n",
+    "| Bloco | Feature | Justificativa Clínica |\n",
+    "|-------|---------|----------------------|\n",
+    "| **Demografia** | `age` / `is_elderly` | Idade ≥65 é fator de risco universal para readmissão |\n",
+    "| | `charlson_comorbidity_index` | Índice validado de comorbidade; preditor forte de mortalidade/readmissão |\n",
+    "| | `baseline_bmi` | Obesidade associada a complicações pós-alta |\n",
+    "| | `smoker_status` | Tabagismo → risco cardiovascular/respiratório |\n",
+    "| | `socioeconomic_tier` | Determinante social: acesso a medicação, follow-up, transporte |\n",
+    "| | `residential_zone` | Rural → menor acesso a cuidado ambulatorial |\n",
+    "| | `marital_status` | Proxy de suporte social (casado = mais apoio) |\n",
+    "| | `gender` | Diferenças de risco por sexo |\n",
+    "| **Internação** | `encounter_type` | Emergency/Inpatient têm maior readmissão que Outpatient |\n",
+    "| | `admission_urgency` | Urgência reflete gravidade aguda |\n",
+    "| | `department` | Especialidades têm perfis de readmissão distintos (Cardiology > Orthopedics) |\n",
+    "| | `length_of_stay_days` + `los_category` | LOS prolongado → fragilidade/descondicionamento |\n",
+    "| | `revisit_count` | Histórico de uso frequente = maior risco |\n",
+    "| | `days_since_last_discharge` + `first_admission_flag` | Readmissão precoce (<30d) é preditora forte |\n",
+    "| **Clínico na Alta** | 10 vitais/labs | Estado fisiológico **no momento da alta** — preditor direto |\n",
+    "| | `disease_category` | Condições crônicas (Cardio, Renal, Endocrine) têm maior readmissão |\n",
+    "| | `disease_severity` | Severidade na alta reflete reserva fisiológica residual |\n",
+    "| **Medicações** | `num_medications` / `polypharmacy_flag` | Polifarmácia (≥5) → eventos adversos, não adesão |\n",
+    "| | `num_therapeutic_classes` | Complexidade do regime terapêutico |\n",
+    "| | `has_high_risk_med` | Flag de medicações de alto risco (Beers criteria, etc.) |\n",
+    "| | `has_anticoagulant` | Anticoagulação → sangramento, necessidade de monitoramento INR |\n",
+    "| | `has_insulin` | Diabetes insulino-dependente → hipoglicemia, ajuste de dose |\n",
+    "| | `has_diuretic` | Insuficiência cardíaca descompensada, desequilíbrio eletrolítico |\n",
+    "| | `has_beta_blocker` / `has_ace_arb` | Marcadores de cardiopatia crônica (ICC, pós-IAM) |"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 18. Pré-processamento Planejado (para `02_treino.ipynb`)\n",
+    "\n",
+    "```python\n",
+    "# Pipeline planejado:\n",
+    "from sklearn.compose import ColumnTransformer\n",
+    "from sklearn.preprocessing import StandardScaler, OneHotEncoder\n",
+    "from sklearn.naive_bayes import GaussianNB, CategoricalNB\n",
+    "from sklearn.pipeline import Pipeline\n",
+    "\n",
+    "preprocessor = ColumnTransformer([\n",
+    "    ('num', StandardScaler(), final_numeric),\n",
+    "    ('cat', OneHotEncoder(handle_unknown='ignore', sparse_output=False), final_categorical),\n",
+    "])\n",
+    "\n",
+    "# Escolha do NB: features mistas → testar ambos\n",
+    "# - GaussianNB: assume features contínuas gaussianas (após scaling)\n",
+    "# - CategoricalNB: para features categóricas (precisa OrdinalEncoder)\n",
+    "# - Opção mista: ColumnTransformer + GaussianNB (OneHot expande categóricas → contínuas)\n",
+    "```\n",
+    "\n",
+    "**Decisão preliminar**: Usar `ColumnTransformer` (StandardScaler + OneHotEncoder) → `GaussianNB`.\n",
+    "As features OneHot viram 0/1 (quase gaussianas após scaling) e GaussianNB funciona bem na prática.\n",
+    "Alternativa: `CategoricalNB` com `OrdinalEncoder` para categóricas + `GaussianNB` para numéricas — mais complexo."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 19. Limitações Identificadas (para documentar no README e apresentação)\n",
+    "\n",
+    "1. **Dataset sintético** — Padrões podem não generalizar para dados reais de EHR\n",
+    "2. **Vazamento potencial nas features de alta** — Vitals/labs e medicações são coletados **no momento da alta**; em produção, usar valores *pré-alta* (ex: 24h antes) ou prever *antes* da decisão de alta\n",
+    "3. **`days_since_last_discharge` = 38% NaN** (primeira internação) → Flag `first_admission_flag` captura isso; imputação com mediana viesaria\n",
+    "4. **Naive Bayes assume independência** — Features clínicas correlacionadas (PA sistólica/diastólica, Hb/creatinina, medicações cardíacas) violam假设\n",
+    "5. **Desbalanceamento 67/33** → Usar `macro-F1` e considerar *threshold tuning* se custo de FN >> FP\n",
+    "6. **Split aleatório vs temporal** — Em produção, usar *time-series split* (treino: meses antigos, teste: mês recente)\n",
+    "7. **Generalização geográfica/sistêmica** — Dataset não especifica local; práticas de alta variam por país/sistema"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 20. Próximos Passos → `02_treino.ipynb`\n",
+    "\n",
+    "1. **Split estratificado**: `train_test_split(X_final, y, test_size=0.2, random_state=42, stratify=y)`\n",
+    "2. **Pipeline**: `ColumnTransformer` (StandardScaler + OneHotEncoder) + `GaussianNB`\n",
+    "3. **Treino**: `fit(X_train, y_train)`\n",
+    "4. **Avaliação**: Accuracy, Precision/Recall/F1 (macro), Matriz de Confusão, AUC-ROC, AUC-PR\n",
+    "5. **Interpretação**: Análise de erros (FP/FN), importância via coeficientes NB\n",
+    "6. **Exportação**: `joblib.dump(pipeline, '../backend/model/modelo_nb.joblib')`\n",
+    "7. **Teste standalone**: `ml/teste_carregamento.py`\n",
+    "8. **Contrato**: Atualizar `ml/CONTRATO.md` com features finais e ordem exata"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python",
+   "version": "3.11.9"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

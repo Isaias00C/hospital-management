@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk read:*)",
+      "Bash(rtk ls:*)",
+      "Bash(rtk wc:*)",
+      "Bash(python3:*)",
+      "Bash(readmission_30d\\\\\\\\)",
+      "Bash(patients\\\\\\\\)",
+      "Bash(visits_encounters\\\\\\\\)",
+      "Bash(clinical_details\\\\\\\\)",
+      "Bash(pharmacy_prescriptions\\\\\\\\)",
+      "Bash(python:*)",
+      "Bash(.venv\\\\Scripts\\\\python:*)",
+      "Read(//w/projetos/hospital-management/ml/**)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/Scripts/python:*)"
+    ]
+  }
+}

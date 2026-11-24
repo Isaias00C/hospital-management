@@ -14,6 +14,17 @@ Usuário → Frontend (React) → POST /predict → Backend (FastAPI + modelo ML
 - **Backend:** API que carrega o modelo na inicialização e expõe o endpoint de predição.
 - **ML:** notebook de exploração/treino e o modelo exportado.
 
+## Propostas de predição
+
+Candidatas para o que o modelo pode prever. A escolha final depende do que o dataset permite (ver pendências).
+
+| Proposta | Ideia |
+|----------|-------|
+| **Previsão de custos** | Estimar o custo de um atendimento ou tratamento a partir das características do paciente e do procedimento. |
+| **Faltas em consultas** | Prever a probabilidade de o paciente faltar a uma consulta agendada (no-show). |
+| **Detecção de fraudes** | Identificar cobranças ou registros suspeitos, por exemplo valores ou padrões fora do esperado. |
+| **Precisão de demandas** | Prever a demanda de atendimentos, leitos ou recursos em um período, para apoiar o planejamento. |
+
 ## Stack
 
 | Camada   | Tecnologia                                  |
@@ -38,7 +49,7 @@ hospital-management/
 
 ## Pendências de definição
 
-- [ ] Explorar o dataset e definir a **variável alvo** da predição
+- [ ] Explorar o dataset e definir a **variável alvo** da predição, escolhendo entre as [propostas](#propostas-de-predição)
 - [ ] Definir os **campos do formulário** com base nas features do modelo
 - [ ] Escolher o formato de exportação do modelo (`joblib` ou `ONNX`)
 - [ ] Decidir onde o backend será hospedado (Render ou Vercel), conforme o tamanho do modelo

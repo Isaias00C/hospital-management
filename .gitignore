@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb.checkpoints
+
+# # ML artifacts
+# *.joblib
+# *.pkl
+# *.pickle
+# *.model
+# ml/data/
+# ml/backend/model/
+# ml/notebooks/*.ipynb.checkpoints
+
+# Exception: allow the trained model artifact to be versioned
+!backend/model/modelo_nb.joblib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Environment
+.env.local
+.env.production
+.claude
