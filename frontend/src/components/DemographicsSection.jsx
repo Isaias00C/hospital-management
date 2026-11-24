@@ -8,12 +8,9 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
+      <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <User className="w-5 h-5 text-teal-600" />
-            1. Demografia e Comorbidades Basais
-          </h2>
+          <h2>Perfil do paciente</h2>
           <p className="text-xs text-slate-500 mt-1">
             Características gerais do paciente e índice de comorbidades prévias.
           </p>

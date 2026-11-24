@@ -13,11 +13,11 @@ import { INITIAL_FORM_DATA, CLINICAL_PRESETS } from './constants/fields';
 import {
   ChevronLeft,
   ChevronRight,
-  Send,
   Loader2,
   AlertCircle,
   Clock,
-  Sparkles,
+  FlaskConical,
+  ArrowUpRight,
   RotateCcw,
 } from 'lucide-react';
 
@@ -162,7 +162,7 @@ export default function App() {
       disease_category: formData.disease_category,
       disease_severity: formData.disease_severity,
 
-      num_medications: validStep(4),
+      num_medications: Number(formData.num_medications),
       num_therapeutic_classes: Number(formData.num_therapeutic_classes),
       has_high_risk_med: Number(formData.has_high_risk_med),
       has_anticoagulant: Number(formData.has_anticoagulant),
@@ -201,211 +201,114 @@ export default function App() {
     if (result) document.getElementById('resultado-clinico')?.focus();
   }, [result]);
 
-  const invalidFields = Object.keys(validateForm(formData));
-  const validStep = (step) => !invalidFields.some((field) => getFieldTab(field) === step);
-
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/70">
+    <div className="app-shell">
       <Navbar
         backendStatus={backendStatus}
         onRefreshHealth={checkHealth}
         onOpenModelInfo={() => setIsModalOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Banner de Apresentação e Presets Rápidos */}
-        <div className="print:hidden bg-gradient-to-r from-teal-900 via-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="max-w-2xl">
-              <span className="badge-chip bg-teal-500/30 text-teal-200 border border-teal-400/30 mb-2">
-                Trabalho Final — Probabilidade e Estatística
-              </span>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Preditor de Risco de Readmissão Hospitalar (30 Dias)
-              </h1>
-              <p className="text-sm text-teal-100/80 mt-2 leading-relaxed">
-                Aplicação integrada ao modelo <strong>GaussianNB</strong> com pipeline de pré-processamento.
-                Avalie o risco de retorno precoce de pacientes na alta e visualize recomendações clínicas.
-              </p>
-            </div>
+      <main className="workspace">
+        <div className="workspace-intro print:hidden">
+          <p className="workspace-kicker">Avaliação de alta</p>
+          <h1>Risco de readmissão</h1>
+          <p>Estime a chance de retorno ao hospital em até 30 dias após a alta.</p>
+        </div>
 
-            {/* Presets Rápidos */}
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 shrink-0">
-              <span className="text-xs font-bold uppercase tracking-wider text-teal-200 block mb-2.5 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Carregar casos de demonstração
-              </span>
-              <div className="flex flex-col sm:flex-row gap-2">
-                {CLINICAL_PRESETS.map((p) => (
+        <div className="assessment-layout">
+          <aside className="assessment-rail print:hidden">
+            <TabsNavigation activeTab={activeTab} onSelectTab={setActiveTab} />
+
+            <details className="sample-panel">
+              <summary><FlaskConical size={17} aria-hidden="true" /> Casos de demonstração</summary>
+              <p>Preencha o formulário com dados fictícios para testar a avaliação.</p>
+              <div className="sample-options">
+                {CLINICAL_PRESETS.map((preset) => (
                   <button
-                    key={p.id}
+                    key={preset.id}
                     type="button"
-                    onClick={() => handleLoadPreset(p)}
-                    className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/15 hover:bg-white/25 text-white border border-white/20 transition-all text-left flex items-center justify-between gap-3 shadow-xs"
+                    aria-pressed={formData === preset.data}
+                    onClick={() => handleLoadPreset(preset)}
                   >
-                    <span>{p.title.split('(')[0]}</span>
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                        p.badgeColor === 'rose'
-                          ? 'bg-rose-500/80 text-white'
-                          : p.badgeColor === 'emerald'
-                          ? 'bg-emerald-500/80 text-white'
-                          : 'bg-amber-500/80 text-white'
-                      }`}
-                    >
-                      {p.badge}
-                    </span>
+                    {preset.title.split(' (')[0]}
+                    <ArrowUpRight size={15} aria-hidden="true" />
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
+            </details>
+          </aside>
 
-        {backendStatus !== 'ok' && backendStatus !== 'checking' && (
-          <div role="status" className="print:hidden mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            {backendStatus === 'degraded'
-              ? 'A API respondeu, mas o modelo não está carregado. Confira os logs do backend.'
-              : import.meta.env.DEV
-              ? 'Sem resposta da API. Confira se o backend está rodando na porta 8000 ou revise VITE_API_URL.'
-              : 'Sem resposta da API. Confira a URL configurada e a disponibilidade do backend.'}
-          </div>
-        )}
-
-        {/* Aviso de demora */}
-        {slowColdStart && (
-          <div role="status" className="print:hidden bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl shadow-xs mb-6 flex items-start gap-3 animate-in fade-in">
-            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                Aguardando resposta da API
-              </h4>
-              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-                Se o servidor estiver iniciando, a primeira resposta pode demorar.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Alerta de Erro da API */}
-        {apiError && (
-          <div role="alert" className="print:hidden bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-xs mb-6 flex items-start gap-3 animate-in fade-in">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-rose-800">
-                Não foi possível calcular o risco
-              </h4>
-              <p className="text-xs text-rose-700 mt-0.5">{apiError}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Formulário Principal em Abas */}
-        <div className="print:hidden bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-          <div className="p-6 sm:p-8">
-            <TabsNavigation
-              activeTab={activeTab}
-              onSelectTab={setActiveTab}
-              tabCompletion={{
-                demographics: validStep(1),
-                encounter: validStep(2),
-                clinical: validStep(3),
-                medications: validStep(4),
-              }}
-            />
-
-            <form onSubmit={handleSubmit} noValidate>
-              {activeTab === 1 && (
-                <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />
-              )}
-              {activeTab === 2 && (
-                <EncounterSection formData={formData} onChange={handleChange} errors={errors} />
-              )}
-              {activeTab === 3 && (
-                <ClinicalSection formData={formData} onChange={handleChange} errors={errors} />
-              )}
-              {activeTab === 4 && (
-                <MedicationsSection formData={formData} onChange={handleChange} errors={errors} />
-              )}
-
-              {/* Barra de Navegação entre Etapas */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-8 mt-8 border-t border-slate-200">
+          <div className="assessment-content">
+            {backendStatus === 'offline' || backendStatus === 'degraded' ? (
+              <div className="notice notice-warning print:hidden" role="status">
+                <AlertCircle size={18} aria-hidden="true" />
                 <div>
-                  {activeTab > 1 ? (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab((prev) => prev - 1)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Etapa Anterior
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Restaurar caso inicial
-                    </button>
-                  )}
+                  <strong>{backendStatus === 'degraded' ? 'Modelo indisponível' : 'API sem resposta'}</strong>
+                  <p>{backendStatus === 'degraded'
+                    ? 'O servidor respondeu, mas o modelo ainda não foi carregado.'
+                    : 'A primeira conexão pode demorar. Tente verificar novamente.'}</p>
                 </div>
+                <button type="button" onClick={checkHealth} className="text-action">Verificar</button>
+              </div>
+            ) : null}
 
-                <div className="flex items-center gap-3">
-                  {activeTab < 4 ? (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab((prev) => prev + 1)}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold shadow-xs transition-colors"
-                    >
-                      Próxima Etapa
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white text-xs font-bold shadow-md shadow-teal-500/20 disabled:opacity-50 transition-all cursor-pointer"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Processando Predição...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Calcular Risco de Readmissão
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
+            {slowColdStart && (
+              <div className="notice notice-warning print:hidden" role="status">
+                <Clock size={18} aria-hidden="true" />
+                <div><strong>Aguardando resposta da API</strong><p>Se o servidor estiver iniciando, a primeira resposta pode demorar.</p></div>
+              </div>
+            )}
+
+            {apiError && (
+              <div className="notice notice-error print:hidden" role="alert">
+                <AlertCircle size={18} aria-hidden="true" />
+                <div><strong>Não foi possível calcular o risco</strong><p>{apiError}</p></div>
+              </div>
+            )}
+
+            <form className="assessment-form print:hidden" onSubmit={handleSubmit} noValidate aria-busy={loading}>
+              <div className="form-body">
+                <p className="step-caption">Etapa {activeTab} de 4</p>
+                {activeTab === 1 && <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />}
+                {activeTab === 2 && <EncounterSection formData={formData} onChange={handleChange} errors={errors} />}
+                {activeTab === 3 && <ClinicalSection formData={formData} onChange={handleChange} errors={errors} />}
+                {activeTab === 4 && <MedicationsSection formData={formData} onChange={handleChange} errors={errors} />}
+              </div>
+
+              <div className="form-actions">
+                {activeTab === 1 ? (
+                  <button type="button" className="button-secondary" onClick={handleReset}>
+                    <RotateCcw size={16} aria-hidden="true" /> Restaurar caso inicial
+                  </button>
+                ) : (
+                  <button type="button" className="button-secondary" onClick={() => setActiveTab(activeTab - 1)}>
+                    <ChevronLeft size={18} aria-hidden="true" /> Voltar
+                  </button>
+                )}
+
+                {activeTab < 4 ? (
+                  <button type="button" className="button-primary" onClick={() => setActiveTab(activeTab + 1)}>
+                    Continuar <ChevronRight size={18} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <button type="submit" className="button-primary" disabled={loading}>
+                    {loading ? <><Loader2 size={17} className="animate-spin" aria-hidden="true" /> Calculando…</> : 'Calcular risco'}
+                  </button>
+                )}
               </div>
             </form>
+
+            {result && <ResultCard result={result.data} formData={result.input} onReset={handleReset} />}
           </div>
         </div>
-
-        {/* Card de Resultado da Predição */}
-        {result && (
-          <div className="mb-12">
-            <ResultCard result={result.data} formData={result.input} onReset={handleReset} />
-          </div>
-        )}
       </main>
 
-      {/* Footer */}
-      <footer className="print:hidden bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <p>
-          HospPredict — Trabalho Final de Probabilidade e Estatística • IFCE (Engenharia da Computação)
-        </p>
-        <p className="mt-1 text-slate-400">
-          Orientador: Prof. Valberto Feitosa • Modelo: Naive Bayes (GaussianNB + ColumnTransformer)
-        </p>
+      <footer className="app-footer print:hidden">
+        <span>HospPredict · Projeto acadêmico do IFCE</span>
+        <span>Use somente dados fictícios.</span>
       </footer>
 
-      {/* Modal de Informações Acadêmicas do Modelo */}
       <ModelInfoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );

@@ -7,10 +7,7 @@ export default function ClinicalSection({ formData, onChange, errors = {} }) {
   return (
     <div className="space-y-6">
       <div className="border-b border-slate-200 pb-4">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-teal-600" />
-          3. Estado Clínico na Alta & Exames Laboratoriais
-        </h2>
+        <h2>Estado clínico na alta</h2>
         <p className="text-xs text-slate-500 mt-1">
           Últimas aferições vitais e exames laboratoriais registrados antes do momento da alta médica.
         </p>

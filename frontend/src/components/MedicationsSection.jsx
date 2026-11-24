@@ -46,12 +46,9 @@ export default function MedicationsSection({ formData, onChange, errors = {} }) 
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-slate-200 pb-4 flex items-center justify-between">
+      <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Pill className="w-5 h-5 text-teal-600" />
-            4. Prescrições & Perfil de Medicações na Alta
-          </h2>
+          <h2>Medicações na alta</h2>
           <p className="text-xs text-slate-500 mt-1">
             Contagem de fármacos prescritos e detecção de medicamentos de alta relevância clínica.
           </p>
