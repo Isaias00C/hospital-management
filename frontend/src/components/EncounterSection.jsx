@@ -18,7 +18,7 @@ export default function EncounterSection({ formData, onChange, errors = {} }) {
   return (
     <div className="space-y-6">
       <div className="border-b border-slate-200 pb-4">
-        <h2>Internação e histórico</h2>
+        <h2 tabIndex={-1}>Internação e histórico</h2>
         <p className="text-xs text-slate-500 mt-1">
           Dados do episódio de internação atual e histórico prévio de atendimentos no hospital.
         </p>

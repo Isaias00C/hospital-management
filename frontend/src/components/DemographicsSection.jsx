@@ -10,14 +10,14 @@ export default function DemographicsSection({ formData, onChange, errors = {} })
     <div className="space-y-6">
       <div className="border-b border-slate-200 pb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2>Perfil do paciente</h2>
+          <h2 tabIndex={-1}>Perfil do paciente</h2>
           <p className="text-xs text-slate-500 mt-1">
             Características gerais do paciente e índice de comorbidades prévias.
           </p>
         </div>
         {isElderly && (
           <span className="badge-chip bg-amber-50 text-amber-700 border border-amber-200">
-            Flag: Paciente Idoso (≥ 65 anos)
+            Pessoa idosa (65 anos ou mais)
           </span>
         )}
       </div>

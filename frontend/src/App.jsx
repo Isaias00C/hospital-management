@@ -7,6 +7,7 @@ import ClinicalSection from './components/ClinicalSection';
 import MedicationsSection from './components/MedicationsSection';
 import ResultCard from './components/ResultCard';
 import ModelInfoModal from './components/ModelInfoModal';
+import ReadmissionWindow from './components/ReadmissionWindow';
 import { checkBackendHealth, requestPrediction } from './services/api';
 import { getFieldTab, validateForm } from './constants/validation';
 import { INITIAL_FORM_DATA, CLINICAL_PRESETS } from './constants/fields';
@@ -35,6 +36,20 @@ export default function App() {
   const [fieldToFocus, setFieldToFocus] = useState(null);
   const prediction = useRef(null);
   const healthCheck = useRef(null);
+  const formBody = useRef(null);
+  const focusStep = useRef(false);
+
+  useEffect(() => {
+    if (!focusStep.current) return;
+    focusStep.current = false;
+    formBody.current?.querySelector('h2')?.focus();
+  }, [activeTab]);
+
+  const goToStep = (step) => {
+    if (step === activeTab) return;
+    focusStep.current = true;
+    setActiveTab(step);
+  };
 
   useEffect(() => {
     if (fieldToFocus) document.getElementById(fieldToFocus.id)?.focus();
@@ -211,14 +226,16 @@ export default function App() {
 
       <main className="workspace">
         <div className="workspace-intro print:hidden">
-          <p className="workspace-kicker">Avaliação de alta</p>
-          <h1>Risco de readmissão</h1>
-          <p>Estime a chance de retorno ao hospital em até 30 dias após a alta.</p>
+          <div className="intro-copy">
+            <h1>Risco de readmissão hospitalar</h1>
+            <p>Use os dados da alta para estimar a chance de retorno ao hospital em até 30 dias.</p>
+          </div>
+          <ReadmissionWindow />
         </div>
 
         <div className="assessment-layout">
           <aside className="assessment-rail print:hidden">
-            <TabsNavigation activeTab={activeTab} onSelectTab={setActiveTab} />
+            <TabsNavigation activeTab={activeTab} onSelectTab={goToStep} />
 
             <details className="sample-panel">
               <summary><FlaskConical size={17} aria-hidden="true" /> Casos de demonstração</summary>
@@ -268,12 +285,14 @@ export default function App() {
             )}
 
             <form className="assessment-form print:hidden" onSubmit={handleSubmit} noValidate aria-busy={loading}>
-              <div className="form-body">
+              <div className="form-body" data-step={activeTab} ref={formBody}>
                 <p className="step-caption">Etapa {activeTab} de 4</p>
-                {activeTab === 1 && <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />}
-                {activeTab === 2 && <EncounterSection formData={formData} onChange={handleChange} errors={errors} />}
-                {activeTab === 3 && <ClinicalSection formData={formData} onChange={handleChange} errors={errors} />}
-                {activeTab === 4 && <MedicationsSection formData={formData} onChange={handleChange} errors={errors} />}
+                <div key={activeTab} className="step-content">
+                  {activeTab === 1 && <DemographicsSection formData={formData} onChange={handleChange} errors={errors} />}
+                  {activeTab === 2 && <EncounterSection formData={formData} onChange={handleChange} errors={errors} />}
+                  {activeTab === 3 && <ClinicalSection formData={formData} onChange={handleChange} errors={errors} />}
+                  {activeTab === 4 && <MedicationsSection formData={formData} onChange={handleChange} errors={errors} />}
+                </div>
               </div>
 
               <div className="form-actions">
@@ -282,13 +301,13 @@ export default function App() {
                     <RotateCcw size={16} aria-hidden="true" /> Restaurar caso inicial
                   </button>
                 ) : (
-                  <button type="button" className="button-secondary" onClick={() => setActiveTab(activeTab - 1)}>
+                  <button type="button" className="button-secondary" onClick={() => goToStep(activeTab - 1)}>
                     <ChevronLeft size={18} aria-hidden="true" /> Voltar
                   </button>
                 )}
 
                 {activeTab < 4 ? (
-                  <button type="button" className="button-primary" onClick={() => setActiveTab(activeTab + 1)}>
+                  <button type="button" className="button-primary" onClick={() => goToStep(activeTab + 1)}>
                     Continuar <ChevronRight size={18} aria-hidden="true" />
                   </button>
                 ) : (
