@@ -1,6 +1,6 @@
-import { ArrowDown, ArrowUpRight, ClipboardList, NotebookPen, ScanLine } from 'lucide-react';
+import { ArrowDown, ClipboardList, FlaskConical, NotebookPen, ScanLine } from 'lucide-react';
 
-export function AssessmentHero({ onStart, started }) {
+export function AssessmentHero({ onStart, onShowCases, started }) {
   return (
     <section className="assessment-hero print:hidden" aria-labelledby="hero-title">
       <div className="hero-copy">
@@ -12,9 +12,9 @@ export function AssessmentHero({ onStart, started }) {
             {started ? 'Voltar à avaliação' : 'Iniciar avaliação'}
             <ArrowDown size={17} aria-hidden="true" />
           </button>
-          <a href="#casos" className="hero-example">
-            Ver casos de exemplo <ArrowUpRight size={15} aria-hidden="true" />
-          </a>
+          <button type="button" className="hero-example" onClick={onShowCases} aria-haspopup="dialog" aria-controls="case-picker">
+            <FlaskConical size={15} aria-hidden="true" /> Ver casos de exemplo
+          </button>
         </div>
       </div>
     </section>

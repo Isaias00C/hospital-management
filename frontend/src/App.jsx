@@ -9,18 +9,17 @@ import ResultCard from './components/ResultCard';
 import ModelInfoModal from './components/ModelInfoModal';
 import ReadmissionWindow from './components/ReadmissionWindow';
 import { AssessmentHero, AssessmentGuide } from './components/AssessmentLanding';
+import { ExampleCases, ExampleCaseDialog } from './components/ExampleCases';
 import { checkBackendHealth, requestPrediction } from './services/api';
 import { getFieldTab, validateForm } from './constants/validation';
-import { EMPTY_FORM_DATA, CLINICAL_PRESETS } from './constants/fields';
+import { EMPTY_FORM_DATA } from './constants/fields';
 import {
   ChevronLeft,
   ChevronRight,
   Loader2,
   AlertCircle,
   Clock,
-  FlaskConical,
   ClipboardList,
-  ArrowUpRight,
   RotateCcw,
 } from 'lucide-react';
 
@@ -40,11 +39,14 @@ export default function App() {
   const prediction = useRef(null);
   const healthCheck = useRef(null);
   const formBody = useRef(null);
+  const caseDialog = useRef(null);
   const focusStep = useRef(false);
   const [assessmentFocus, setAssessmentFocus] = useState(0);
 
   useEffect(() => {
-    if (assessmentFocus) document.getElementById("assessment-title")?.focus();
+    if (!assessmentFocus) return;
+    document.getElementById('avaliacao')?.scrollIntoView({ block: 'start' });
+    document.getElementById('assessment-title')?.focus({ preventScroll: true });
   }, [assessmentFocus]);
 
   const openAssessment = () => {
@@ -126,6 +128,7 @@ export default function App() {
 
   // Carrega casos pré-configurados
   const handleLoadPreset = (preset) => {
+    caseDialog.current?.close();
     invalidatePrediction();
     setFormData(preset.data);
     openAssessment();
@@ -254,7 +257,7 @@ export default function App() {
       />
 
       <main className="workspace">
-        <AssessmentHero onStart={openAssessment} started={assessmentStarted} />
+        <AssessmentHero onStart={openAssessment} onShowCases={() => caseDialog.current?.showModal()} started={assessmentStarted} />
 
         <section className="assessment-zone" id="avaliacao" aria-labelledby="assessment-title">
           <div className="assessment-heading print:hidden">
@@ -343,26 +346,7 @@ export default function App() {
             </div>
 
             <aside className="assessment-rail print:hidden" aria-label="Casos de demonstração">
-              <section className="example-panel" id="casos" aria-labelledby="example-title">
-                <div className="example-heading">
-                  <span className="guide-icon"><FlaskConical size={19} aria-hidden="true" /></span>
-                  <h3 id="example-title">Casos de exemplo</h3>
-                </div>
-                <p>Ao escolher um caso, os dados do formulário são substituídos.</p>
-                <div className="sample-options">
-                  {CLINICAL_PRESETS.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      aria-pressed={formData === preset.data}
-                      onClick={() => handleLoadPreset(preset)}
-                    >
-                      <span>{preset.title.split(' (')[0]}</span>
-                      <ArrowUpRight size={15} aria-hidden="true" />
-                    </button>
-                  ))}
-                </div>
-              </section>
+              <ExampleCases onSelect={handleLoadPreset} formData={formData} assessmentStarted={assessmentStarted} />
               <ReadmissionWindow />
             </aside>
           </div>
@@ -377,6 +361,7 @@ export default function App() {
       </footer>
 
       <ModelInfoModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <ExampleCaseDialog dialogRef={caseDialog} onSelect={handleLoadPreset} formData={formData} assessmentStarted={assessmentStarted} />
     </div>
   );
 }

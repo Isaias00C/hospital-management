@@ -12,9 +12,10 @@
 .app-shell { background: #f3f6fc; }
 .app-header { background: #fcfdff; }
 .app-header-inner, .workspace, .app-footer { width: min(100% - 48px, 1200px); }
-.app-header-inner { min-height: 68px; }
+.app-header-inner { min-height: 68px; justify-content: flex-start; }
 .brand { color: #182a4b; }
-.site-nav { display: flex; align-items: center; gap: 28px; font-size: 13px; font-weight: 600; }
+.site-nav { display: flex; align-items: center; gap: 24px; margin-inline-start: 22px; font-size: 13px; font-weight: 600; }
+.header-actions { margin-inline-start: auto; }
 .site-nav a { color: #3e516c; padding-block: 8px; }
 .site-nav a:hover, .app-footer button:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; }
 .workspace { padding-block: 22px 54px; }
@@ -90,6 +91,40 @@
 .example-panel .sample-options { gap: 5px; }
 .example-panel .sample-options button { min-height: 36px; padding-inline: 8px; background: #f8fbff; border: 1px solid #d3dff4; color: #234779; font-weight: 650; }
 .example-panel .sample-options button:hover, .example-panel .sample-options button[aria-pressed="true"] { color: #163b85; background: #d7e6ff; border-color: #b0c5e8; }
+.case-dialog {
+  width: min(100% - 28px, 520px);
+  max-height: calc(100dvh - 28px);
+  margin: auto;
+  padding: clamp(15px, 4vw, 25px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 20px 55px #132b5033;
+}
+.case-dialog::backdrop { background: #101f3a80; }
+.case-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.case-dialog-header h2 { color: var(--navy); font: 800 clamp(19px, 4vw, 24px)/1.2 var(--display); letter-spacing: -.035em; }
+.case-dialog-header .icon-action { flex-shrink: 0; }
+.case-dialog > p { color: var(--muted); font-size: 13px; line-height: 1.55; margin: 4px 0 14px; }
+.case-dialog-options { display: grid; gap: 7px; }
+.case-dialog-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  text-align: left;
+  color: #254b83;
+  background: #f6f9ff;
+  border: 1px solid #d6e2f5;
+  border-radius: 9px;
+  font-size: 13px;
+}
+.case-dialog-options button:hover, .case-dialog-options button[aria-pressed="true"] { background: #e9f1ff; border-color: #b4c9eb; }
+.case-dialog-options svg { flex-shrink: 0; }
+.case-description { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .assessment-rail .readmission-window { background: #183769; border-radius: 14px; padding: 15px 17px; }
 .assessment-rail .window-labels strong { font-size: 17px; }
 .assessment-rail .window-timeline { margin-top: 4px; }
@@ -117,7 +152,7 @@
 .app-footer button { font-weight: 650; color: #274f91; border-radius: 4px; }
 
 @media (max-width: 900px) {
-  .site-nav { gap: 16px; }
+  .site-nav { gap: 16px; margin-inline-start: 10px; }
   .assessment-hero { min-height: 360px; grid-template-columns: minmax(0, 1.06fr) minmax(34%, .7fr); }
   .assessment-layout { grid-template-columns: minmax(0, 1fr) 232px; gap: 14px; }
 }
